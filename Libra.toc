@@ -1,0 +1,8 @@
+## Interface: 50400
+
+## Title: Libra
+## Author: Lombra
+
+LibStub\LibStub.lua
+
+Libra\Libra.xml
