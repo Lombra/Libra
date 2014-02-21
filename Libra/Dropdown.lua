@@ -10,17 +10,18 @@ local DropdownPrototype = Dropdown.Prototype
 
 local function setHeight() end
 
-local function constructor(self, parent, createListFrame)
+local function constructor(self, type, parent)
 	local dropdown
-	if createListFrame then
+	if type == "Menu" then
+		-- adding a SetHeight dummy lets us use a simple table instead of a frame, no side effects noticed so far
+		dropdown = {}
+		dropdown.SetHeight = setHeight
+	end
+	if type == "Frame" then
 		local name = self:GetWidgetName(name)
 		dropdown = CreateFrame("Frame", name, parent, "UIDropDownMenuTemplate")
 		dropdown.label = dropdown:CreateFontString(name.."Label", "BACKGROUND", "GameFontNormalSmall")
 		dropdown.label:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 16, 3)
-	else
-		-- adding a SetHeight dummy lets us use a simple table instead of a frame, no side effects noticed so far
-		dropdown = {}
-		dropdown.SetHeight = setHeight
 	end
 	
 	setmetatable(dropdown, mt)
