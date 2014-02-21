@@ -6,6 +6,7 @@ local UIPanelPrototype = CreateFrame("Frame")
 local mt = {__index = UIPanelPrototype}
 
 local function constructor(self, name)
+	name = name or Libra:GetWidgetName()
 	local panel = setmetatable(CreateFrame("Frame", name, UIParent, "ButtonFrameTemplate"), mt)
 	
 	tinsert(UISpecialFrames, name)
