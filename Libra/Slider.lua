@@ -1,7 +1,14 @@
-local _, Libra = ...
+local Libra = LibStub("Libra")
+local Type, Version = "Slider", 1
+if Libra:GetModuleVersion(Type) >= Version then return end
 
-local UIPanelPrototype = CreateFrame("Frame")
-local mt = {__index = UIPanelPrototype}
+Libra.modules[Type] = Libra.modules[Type] or {}
+
+local Slider = Libra.modules[Type]
+Slider.Prototype = Slider.Prototype or CreateFrame("Slider")
+
+local Prototype = Slider.Prototype
+local mt = {__index = Prototype}
 
 local backdrop = {
 	bgFile = [[Interface\Buttons\UI-SliderBar-Background]],
@@ -10,9 +17,8 @@ local backdrop = {
 	insets = {left = 3, right = 3, top = 6, bottom = 6}
 }
 
-function Libra:CreateSlider()
-	local panel = setmetatable(CreateFrame("Frame", nil, UIParent, "ButtonFrameTemplate"), mt)
-	local slider = CreateFrame("Slider", nil, self)
+local function constructor(self, parent)
+	local slider = setmetatable(CreateFrame("Slider", nil, parent), mt)
 	slider:SetSize(144, 17)
 	slider:SetBackdrop(backdrop)
 	slider:SetThumbTexture([[Interface\Buttons\UI-SliderBar-Button-Horizontal]])
@@ -32,19 +38,16 @@ function Libra:CreateSlider()
 	return slider
 end
 
+
 local methods = {
-	ShowPortrait = ButtonFrameTemplate_ShowPortrait,
-	HidePortrait = ButtonFrameTemplate_HidePortrait,
-	ShowAttic = ButtonFrameTemplate_ShowAttic,
-	HideAttic = ButtonFrameTemplate_HideAttic,
-	ShowButtonBar = ButtonFrameTemplate_ShowButtonBar,
-	HideButtonBar = ButtonFrameTemplate_HideButtonBar,
 }
 
 for k, v in pairs(methods) do
-	UIPanelPrototype[k] = v
+	Prototype[k] = v
 end
 
-function UIPanelPrototype:SetTitleText(text)
-	self.TitleText:SetText(text)
-end
+-- function Prototype:SetTitleText(text)
+	-- self.TitleText:SetText(text)
+-- end
+
+Libra:RegisterModule(Type, Version, constructor)

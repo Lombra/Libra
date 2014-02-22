@@ -1,12 +1,17 @@
 local Libra = LibStub("Libra")
-local UIPanel = Libra:GetModule("UIPanel", 1)
-if not UIPanel then return end
+local Type, Version = "UIPanel", 1
+if Libra:GetModuleVersion(Type) >= Version then return end
 
-local UIPanelPrototype = CreateFrame("Frame")
-local mt = {__index = UIPanelPrototype}
+Libra.modules[Type] = Libra.modules[Type] or {}
+
+local UIPanel = Libra.modules[Type]
+UIPanel.Prototype = UIPanel.Prototype or CreateFrame("Frame")
+
+local Prototype = UIPanel.Prototype
+local mt = {__index = Prototype}
 
 local function constructor(self, name)
-	name = name or Libra:GetWidgetName()
+	name = name or Libra:GetWidgetName(self.name)
 	local panel = setmetatable(CreateFrame("Frame", name, UIParent, "ButtonFrameTemplate"), mt)
 	
 	tinsert(UISpecialFrames, name)
@@ -19,8 +24,6 @@ local function constructor(self, name)
 	return panel
 end
 
-UIPanel.constructor = constructor
-Libra.CreateUIPanel = constructor
 
 local methods = {
 	ShowPortrait = ButtonFrameTemplate_ShowPortrait,
@@ -31,17 +34,18 @@ local methods = {
 }
 
 for k, v in pairs(methods) do
-	UIPanelPrototype[k] = v
+	Prototype[k] = v
 end
 
-function UIPanelPrototype:SetTitleText(text)
+function Prototype:SetTitleText(text)
 	self.TitleText:SetText(text)
 end
 
-function UIPanelPrototype:HideButtonBar()
+function Prototype:HideButtonBar()
 	ButtonFrameTemplate_HideButtonBar(self)
 	self.Inset:SetPoint("BOTTOMRIGHT", PANEL_INSET_RIGHT_OFFSET, PANEL_INSET_BOTTOM_OFFSET + 2)
 end
+
 
 --[[ functions to manage tab interfaces where only one tab of a group may be selected
 function PanelTemplates_Tab_OnClick(self, frame)
@@ -209,3 +213,5 @@ function PanelTemplates_SetDisabledTabState(tab)
 end
 
 ]]
+
+Libra:RegisterModule(Type, Version, constructor)

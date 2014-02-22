@@ -1,16 +1,19 @@
 local Libra = LibStub("Libra")
-local Dropdown = Libra:GetModule("Dropdown", 1)
-if not Dropdown then return end
+local Type, Version = "Dropdown", 1
+if Libra:GetModuleVersion(Type) >= Version then return end
 
-Dropdown.objects = Dropdown.objects or {}
+Libra.modules[Type] = Libra.modules[Type] or {}
+
+local Dropdown = Libra.modules[Type]
 Dropdown.Prototype = Dropdown.Prototype or CreateFrame("Frame")
-local mt = {__index = Dropdown.Prototype}
+Dropdown.objects = Dropdown.objects or {}
 
-local DropdownPrototype = Dropdown.Prototype
+local Prototype = Dropdown.Prototype
+local mt = {__index = Prototype}
 
 local function setHeight() end
 
-local function constructor(self, type, parent)
+local function constructor(self, type, parent, name)
 	local dropdown
 	if type == "Menu" then
 		-- adding a SetHeight dummy lets us use a simple table instead of a frame, no side effects noticed so far
@@ -18,7 +21,7 @@ local function constructor(self, type, parent)
 		dropdown.SetHeight = setHeight
 	end
 	if type == "Frame" then
-		local name = self:GetWidgetName(name)
+		name = name or Libra:GetWidgetName(self.name)
 		dropdown = CreateFrame("Frame", name, parent, "UIDropDownMenuTemplate")
 		dropdown.label = dropdown:CreateFontString(name.."Label", "BACKGROUND", "GameFontNormalSmall")
 		dropdown.label:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 16, 3)
@@ -30,8 +33,6 @@ local function constructor(self, type, parent)
 	return dropdown
 end
 
-Dropdown.constructor = constructor
-Libra.CreateDropdown = constructor
 
 local methods = {
 	Enable = UIDropDownMenu_EnableDropDown,
@@ -45,26 +46,26 @@ local methods = {
 }
 
 for k, v in pairs(methods) do
-	DropdownPrototype[k] = v
+	Prototype[k] = v
 end
 
-function DropdownPrototype:ToggleMenu(value, level, ...)
+function Prototype:ToggleMenu(value, level, ...)
 	ToggleDropDownMenu(level, value, self, ...)
 end
 
-function DropdownPrototype:HideMenu(level)
+function Prototype:HideMenu(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		HideDropDownMenu(level)
 	end
 end
 
-function DropdownPrototype:CloseMenus(level)
+function Prototype:CloseMenus(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		CloseDropDownMenus(level)
 	end
 end
 
-function DropdownPrototype:AddButton(info, level)
+function Prototype:AddButton(info, level)
 	self.displayMode = self._displayMode
 	self.selectedValue = self._selectedValue
 	UIDropDownMenu_AddButton(info, level)
@@ -72,18 +73,18 @@ function DropdownPrototype:AddButton(info, level)
 	self.selectedValue = nil
 end
 
-function DropdownPrototype:SetSelectedValue(value, useValue)
+function Prototype:SetSelectedValue(value, useValue)
 	self._selectedValue = value
 	self.selectedValue = value
 	self:Refresh(useValue)
 	self.selectedValue = nil
 end
 
-function DropdownPrototype:GetSelectedValue()
+function Prototype:GetSelectedValue()
 	return self._selectedValue
 end
 
-function DropdownPrototype:Rebuild()
+function Prototype:Rebuild()
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		level = level or 1
 		local listFrame = _G["DropDownList"..level]
@@ -94,9 +95,9 @@ function DropdownPrototype:Rebuild()
 	end
 end
 
-local setWidth = DropdownPrototype.SetWidth
+local setWidth = Prototype.SetWidth
 
-function DropdownPrototype:SetWidth(width, padding)
+function Prototype:SetWidth(width, padding)
 	_G[self:GetName().."Middle"]:SetWidth(width)
 	local defaultPadding = 25
 	if padding then
@@ -109,11 +110,11 @@ function DropdownPrototype:SetWidth(width, padding)
 	self.noResize = 1
 end
 
-function DropdownPrototype:SetLabel(text)
+function Prototype:SetLabel(text)
 	self.label:SetText(text)
 end
 
-function DropdownPrototype:SetEnabled(enable)
+function Prototype:SetEnabled(enable)
 	if enable then
 		self:Enable()
 	else
@@ -121,9 +122,10 @@ function DropdownPrototype:SetEnabled(enable)
 	end
 end
 
-function DropdownPrototype:SetDisplayMode(mode)
+function Prototype:SetDisplayMode(mode)
 	self._displayMode = mode
 end
+
 
 local function createScrollButtons(listFrame)
 	local scrollUp = listFrame.scrollUp or CreateFrame("Button", nil, listFrame)
@@ -212,6 +214,11 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 		listFrame:SetPoint(point, anchorFrame, relativePoint, x, y + offTop)
 		update(dropdownFrame, level)
 	else
+		if listFrame:GetTop() > GetScreenHeight() then
+			local point, anchorFrame, relativePoint, x, y = listFrame:GetPoint()
+			local offTop = (GetScreenHeight() - listFrame:GetTop())-- / listFrame:GetScale()
+			listFrame:SetPoint(point, anchorFrame, relativePoint, x, y + offTop)
+		end
 		listFrame:SetScript("OnMouseWheel", nil)
 		self.scrollButtons[level].up:Hide()
 		self.scrollButtons[level].down:Hide()
@@ -224,3 +231,5 @@ if not Dropdown.hookToggleDropDownMenu then
 	end)
 	Dropdown.hookToggleDropDownMenu = true
 end
+
+Libra:RegisterModule(Type, Version, constructor)
