@@ -1,7 +1,10 @@
 local Libra = LibStub("Libra")
-local object = Libra:GetModule("Addon", 1)
-if not object then return end
+local Type, Version = "Addon", 1
+if Libra:GetModuleVersion(Type) >= Version then return end
 
+Libra.modules[Type] = Libra.modules[Type] or {}
+
+local object = Libra.modules[Type]
 object.frame = object.frame or CreateFrame("Frame")
 object.addons = object.addons or {}
 object.events = object.events or {}
@@ -47,7 +50,13 @@ setmetatable(object.events, {
 local AddonPrototype = {}
 local ObjectPrototype = {}
 
-local function embed(target)
+local function AddonEmbed(target)
+	for k, v in pairs(AddonPrototype) do
+		target[k] = v
+	end
+end
+
+local function ObjectEmbed(target)
 	for k, v in pairs(ObjectPrototype) do
 		target[k] = v
 	end
@@ -59,18 +68,21 @@ function Libra:NewAddon(name, addonObject)
 	end
 	
 	local addon = addonObject or {}
-	embed(addon)
-	for k, v in pairs(AddonPrototype) do
-		addon[k] = v
-	end
+	addon.name = name
 	addon.modules = {}
+	AddonEmbed(addon)
+	ObjectEmbed(addon)
 	object.addons[name] = addon
 	return addon
 end
 
+function Libra:GetAddon(name)
+	return object.addons[name]
+end
+
 function AddonPrototype:NewModule(name, table)
 	local module = table or {}
-	embed(module)
+	ObjectEmbed(module)
 	module.name = name
 	self.modules[name] = module
 	safecall(self, "OnModuleCreated", name, module)
@@ -118,3 +130,14 @@ function ObjectPrototype:RemoveOnUpdate()
 		object.frame:SetScript("OnUpdate", nil)
 	end
 end
+
+-- upgrade embeds
+for k, v in pairs(object.addons) do
+	AddonEmbed(v)
+	ObjectEmbed(v)
+	for k, v in pairs(v.modules) do
+		ObjectEmbed(v)
+	end
+end
+
+Libra:RegisterModule(Type, Version)

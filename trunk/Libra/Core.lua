@@ -1,28 +1,31 @@
-local lib = LibStub:NewLibrary("Libra", 1)
+local MAJOR, MINOR = "Libra", 1
+local lib = LibStub:NewLibrary(MAJOR, MINOR)
 
 if not lib then return end
 
-lib.objects = lib.objects or {}
+lib.modules = lib.modules or {}
+lib.moduleVersions = lib.moduleVersions or {}
+lib.widgets = lib.widgets or {}
+lib.widgetEmbeds = lib.widgetEmbeds or {}
 lib.namespaces = lib.namespaces or {}
-lib.embeds = lib.embeds or {}
+
+function lib:RegisterModule(object, version, constructor)
+	self.moduleVersions[object] = version
+	if constructor then
+		self.widgets[object] = constructor
+		self["Create"..object] = constructor
+		for k in pairs(self.widgetEmbeds) do
+			k["Create"..object] = constructor
+		end
+	end
+end
+
+function lib:GetModuleVersion(module)
+	return self.moduleVersions[module] or 0
+end
 
 function lib:Create(objectType, parent, ...)
 	return lib.objects[objectType].constructor(self, objectType, parent, ...)
-end
-
-function lib:CreateFactory(objectType)
-end
-
-function lib:GetModule(object, version)
-	local o = self.objects[object]
-	if o and o.version >= version then
-		return
-	end
-	self.objects[object] = {
-		version = version,
-		t = {},
-	}
-	return self.objects[object].t
 end
 
 function lib:GetWidgetName(name)
@@ -43,16 +46,12 @@ local mixins = {
 	"Create",
 }
 
-function lib:Embed(target)
+function lib:EmbedWidgets(target)
 	for i, v in ipairs(mixins) do
-		target[v] = self[v]
+		-- target[v] = self[v]
 	end
-	for k, v in pairs(self.objects) do
-		target["Create"..k] = v.constructor
+	for k, v in pairs(self.widgets) do
+		target["Create"..k] = v
 	end
-	self.embeds[target] = true
-end
-
-for k, v in pairs(lib.embeds) do
-	lib:Embed(v)
+	self.widgetEmbeds[target] = true
 end
