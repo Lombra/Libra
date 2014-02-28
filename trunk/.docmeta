@@ -2,3 +2,4 @@
     type: luadoc
     input-files: 
         - "Libra/Dropdown.lua"
+    output-directory: API
