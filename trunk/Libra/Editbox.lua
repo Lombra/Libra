@@ -6,9 +6,25 @@ Libra.modules[Type] = Libra.modules[Type] or {}
 
 local Editbox = Libra.modules[Type]
 
-local function constructor(self, parent)
+local function onEditFocusGained(self)
+	self:SetTextColor(1, 1, 1)
+end
+
+local function onEditFocusLost(self)
+	self:SetFontObject("ChatFontSmall")
+	self:SetTextColor(0.5, 0.5, 0.5)
+end
+
+local function constructor(self, parent, isSearchBox)
 	local name = Libra:GetWidgetName(self.name)
-	local editbox = CreateFrame("EditBox", name, parent, "SearchBoxTemplate")
+	local editbox = CreateFrame("EditBox", name, parent, isSearchBox and "SearchBoxTemplate" or "InputBoxTemplate")
+	editbox:SetHeight(20)
+	editbox:SetFontObject("ChatFontSmall")
+	if isSearchBox then
+		editbox:SetTextColor(0.5, 0.5, 0.5)
+		editbox:HookScript("OnEditFocusGained", onEditFocusGained)
+		editbox:HookScript("OnEditFocusLost", onEditFocusLost)
+	end
 	_G[name] = nil
 	return editbox
 end

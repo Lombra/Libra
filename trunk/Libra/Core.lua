@@ -47,11 +47,15 @@ local mixins = {
 }
 
 function lib:EmbedWidgets(target)
-	for i, v in ipairs(mixins) do
+	-- for i, v in ipairs(mixins) do
 		-- target[v] = self[v]
-	end
+	-- end
 	for k, v in pairs(self.widgets) do
 		target["Create"..k] = v
 	end
 	self.widgetEmbeds[target] = true
+end
+
+for k in pairs(lib.widgetEmbeds) do
+	lib:EmbedWidgets(k)
 end
