@@ -13,18 +13,39 @@ local mt = {__index = Prototype}
 local backdrop = {
 	bgFile = [[Interface\Buttons\UI-SliderBar-Background]],
 	edgeFile = [[Interface\Buttons\UI-SliderBar-Border]],
-	-- tile = true, tileSize = 8, edgeSize = 8,
+	edgeSize = 8,
+	-- tile = true, tileSize = 8,
 	insets = {left = 3, right = 3, top = 6, bottom = 6}
 }
+
+local function onEnter(self)
+	if self:IsEnabled() then
+		if self.tooltipText then
+			GameTooltip:SetOwner(self, self.tooltipOwnerPoint or "ANCHOR_RIGHT")
+			GameTooltip:SetText(self.tooltipText, nil, nil, nil, nil, true)
+		end
+		if self.tooltipRequirement then
+			GameTooltip:AddLine(self.tooltipRequirement, 1.0, 1.0, 1.0)
+			GameTooltip:Show()
+		end
+	end
+end
+
+local function onLeave(self)
+	GameTooltip:Hide()
+end
 
 local function constructor(self, parent)
 	local slider = setmetatable(CreateFrame("Slider", nil, parent), mt)
 	slider:SetSize(144, 17)
 	slider:SetBackdrop(backdrop)
 	slider:SetThumbTexture([[Interface\Buttons\UI-SliderBar-Button-Horizontal]])
+	slider:SetObeyStepOnDrag(true)
+	slider:SetScript("OnEnter", onEnter)
+	slider:SetScript("OnLeave", onLeave)
 	
-	slider.text = slider:CreateFontString(nil, nil, "GameFontNormal")
-	slider.text:SetPoint("BOTTOM", slider, "TOP")
+	slider.label = slider:CreateFontString(nil, nil, "GameFontNormal")
+	slider.label:SetPoint("BOTTOM", slider, "TOP")
 	
 	slider.min = slider:CreateFontString(nil, nil, "GameFontHighlightSmall")
 	slider.min:SetPoint("TOPLEFT", slider, "BOTTOMLEFT", -4, 3)
@@ -39,15 +60,11 @@ local function constructor(self, parent)
 end
 
 
-local methods = {
-}
+-- local methods = {
+-- }
 
-for k, v in pairs(methods) do
-	Prototype[k] = v
-end
-
--- function Prototype:SetTitleText(text)
-	-- self.TitleText:SetText(text)
+-- for k, v in pairs(methods) do
+	-- Prototype[k] = v
 -- end
 
 Libra:RegisterModule(Type, Version, constructor)
