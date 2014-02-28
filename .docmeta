@@ -1,5 +1,5 @@
 -
     type: luadoc
     input-files: 
-        - "Libra/Dropdown.lua"
+        - "Libra/*.lua"
     output-directory: API

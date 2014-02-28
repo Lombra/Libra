@@ -24,8 +24,8 @@ function lib:GetModuleVersion(module)
 	return self.moduleVersions[module] or 0
 end
 
-function lib:Create(objectType, parent, ...)
-	return lib.objects[objectType].constructor(self, objectType, parent, ...)
+function lib:Create(objectType, ...)
+	return lib.widgets[objectType](self, ...)
 end
 
 function lib:GetWidgetName(name)
