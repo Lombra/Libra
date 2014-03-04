@@ -1,5 +1,0 @@
--
-    type: luadoc
-    input-files: 
-        - "Libra/*.lua"
-    output-directory: API

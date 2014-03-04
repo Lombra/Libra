@@ -1,7 +1,5 @@
---- Taint free wrapper implementation of UIDropDownMenu. Objects are fully compatible with the default dropdown API.
--- Uses various tricks to avoid tainting the PvP frame. (possibly more) Use of certain replacement methods is required to avoid taint.
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 1
+local Type, Version = "Dropdown", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -53,8 +51,8 @@ for k, v in pairs(methods) do
 	Prototype[k] = v
 end
 
----
 function Prototype:AddButton(info, level)
+	info.owner = self
 	self.displayMode = self._displayMode
 	self.selectedName = self._selectedName
 	self.selectedValue = self._selectedValue
@@ -66,13 +64,10 @@ function Prototype:AddButton(info, level)
 	self.selectedID = nil
 end
 
----
-function Prototype:ToggleMenu(value, level, ...)
-	ToggleDropDownMenu(level, value, self, ...)
+function Prototype:ToggleMenu(value, anchorName, xOffset, yOffset, menuList, level, ...)
+	ToggleDropDownMenu(level, value, self, anchorName, xOffset, yOffset, menuList, ...)
 end
 
---- Rebuilds the dropdown (if currently showing) at the given level, calling the .initialize function again.
--- @param level The level at which to rebuild the dropdown, or 1 if omitted.
 function Prototype:RebuildMenu(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		level = level or 1
@@ -80,25 +75,22 @@ function Prototype:RebuildMenu(level)
 		-- set .rebuild to indicate that we don't want to reset the scroll offset on the next ToggleDropDownMenu
 		self.rebuild = true
 		self:HideMenu(level)
-		self:ToggleMenu(listData.value, level, listData.anchorName, listData.xOffset, listData.yOffset, listData.menuList, listData.button, listData.autoHideDelay)
+		self:ToggleMenu(listData.value, listData.anchorName, listData.xOffset, listData.yOffset, level, listData.menuList, listData.button, listData.autoHideDelay)
 	end
 end
 
----
 function Prototype:HideMenu(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		HideDropDownMenu(level)
 	end
 end
 
----
 function Prototype:CloseMenus(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		CloseDropDownMenus(level)
 	end
 end
 
----
 function Prototype:SetSelectedName(name, useValue)
 	self._selectedName = name
 	self._selectedValue = nil
@@ -108,7 +100,6 @@ function Prototype:SetSelectedName(name, useValue)
 	self.selectedName = nil
 end
 
----
 function Prototype:SetSelectedValue(value, useValue)
 	self._selectedValue = value
 	self._selectedName = nil
@@ -118,7 +109,6 @@ function Prototype:SetSelectedValue(value, useValue)
 	self.selectedValue = nil
 end
 
----
 function Prototype:SetSelectedID(id, useValue)
 	self._selectedID = id
 	self._selectedName = nil
@@ -128,17 +118,14 @@ function Prototype:SetSelectedID(id, useValue)
 	self.selectedID = nil
 end
 
----
 function Prototype:GetSelectedName()
 	return self._selectedName
 end
 
----
 function Prototype:GetSelectedValue()
 	return self._selectedValue
 end
 
----
 function Prototype:GetSelectedID()
 	if self._selectedID then
 		return self._selectedID
@@ -160,8 +147,6 @@ function Prototype:GetSelectedID()
 	end
 end
 
---- Sets the display mode used by the dropdown. Taint free equivalent of dropdown.displayMode = mode.
--- @param mode The display mode to be used. "MENU" or any other value.
 function Prototype:SetDisplayMode(mode)
 	self._displayMode = mode
 end
@@ -195,7 +180,6 @@ end
 
 local setWidth = Prototype.SetWidth
 
----
 function FramePrototype:SetWidth(width, padding)
 	_G[self:GetName().."Middle"]:SetWidth(width)
 	local defaultPadding = 25
@@ -209,12 +193,10 @@ function FramePrototype:SetWidth(width, padding)
 	self.noResize = 1
 end
 
----
 function FramePrototype:SetLabel(text)
 	self.label:SetText(text)
 end
 
----
 function FramePrototype:SetEnabled(enable)
 	if enable then
 		self:Enable()
