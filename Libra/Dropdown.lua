@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 2
+local Type, Version = "Dropdown", 3
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -75,7 +75,7 @@ function Prototype:RebuildMenu(level)
 		-- set .rebuild to indicate that we don't want to reset the scroll offset on the next ToggleDropDownMenu
 		self.rebuild = true
 		self:HideMenu(level)
-		self:ToggleMenu(listData.value, listData.anchorName, listData.xOffset, listData.yOffset, level, listData.menuList, listData.button, listData.autoHideDelay)
+		self:ToggleMenu(listData.value, listData.anchorName, listData.xOffset, listData.yOffset, listData.menuList, level, listData.button, listData.autoHideDelay)
 	end
 end
 
