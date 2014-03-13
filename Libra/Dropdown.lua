@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 3
+local Type, Version = "Dropdown", 4
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -246,6 +246,12 @@ local function onMouseUp(self)
 	self.texture:SetPoint("CENTER")
 end
 
+local function onHide(self)
+	self.texture:SetPoint("CENTER")
+	-- explicitly hide so that they are hidden for unmanaged dropdowns
+	self:Hide()
+end
+
 local function createScrollButton(listFrame)
 	local level = listFrame:GetID()
 	local button = CreateFrame("Button", nil, listFrame)
@@ -255,7 +261,7 @@ local function createScrollButton(listFrame)
 	button:SetScript("OnLeave", onLeave)
 	button:SetScript("OnMouseDown", onMouseDown)
 	button:SetScript("OnMouseUp", onMouseUp)
-	button:SetScript("OnHide", onMouseUp)
+	button:SetScript("OnHide", onHide)
 	button:SetID(level)
 	button.texture = button:CreateTexture()
 	button.texture:SetSize(16, 16)
