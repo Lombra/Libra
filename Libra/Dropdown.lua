@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 4
+local Type, Version = "Dropdown", 5
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -300,9 +300,12 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 	if level ~= 1 then
 		dropdownFrame = dropdownFrame or UIDROPDOWNMENU_OPEN_MENU
 	end
-	if not objects[dropdownFrame] then return end
 	local listFrameName = "DropDownList"..level
 	local listFrame = _G[listFrameName]
+	if not objects[dropdownFrame] then
+		listFrame:SetScript("OnMouseWheel", nil)
+		return
+	end
 	if dropdownFrame and dropdownFrame._displayMode == "MENU" then
 		_G[listFrameName.."Backdrop"]:Hide()
 		_G[listFrameName.."MenuBackdrop"]:Show()
