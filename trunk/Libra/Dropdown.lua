@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 5
+local Type, Version = "Dropdown", 6
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -69,8 +69,9 @@ function Prototype:ToggleMenu(value, anchorName, xOffset, yOffset, menuList, lev
 end
 
 function Prototype:RebuildMenu(level)
-	if UIDropDownMenu_GetCurrentDropDown() == self then
-		level = level or 1
+	level = level or 1
+	local listFrame = _G["DropDownList"..level]
+	if listFrame and listFrame:IsShown() and UIDropDownMenu_GetCurrentDropDown() == self then
 		local listData = listData[level]
 		-- set .rebuild to indicate that we don't want to reset the scroll offset on the next ToggleDropDownMenu
 		self.rebuild = true
