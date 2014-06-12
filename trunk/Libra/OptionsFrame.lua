@@ -284,6 +284,9 @@ function Prototype:SetupControls()
 		if control.func then
 			control:func(value)
 		end
+		if control.disabled then
+			control:SetEnabled(not control.disabled())
+		end
 	end
 end
 
