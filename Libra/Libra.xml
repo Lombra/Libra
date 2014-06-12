@@ -6,6 +6,7 @@
 	<Script file="UIPanel.lua"/>
 	<Script file="Dropdown.lua"/>
 	<Script file="Editbox.lua"/>
+	<Script file="OptionsFrame.lua"/>
 	<Script file="ScrollFrame.lua"/>
 	<Script file="Slider.lua"/>
 </Ui>
