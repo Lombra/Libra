@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Slider", 1
+local Type, Version = "Slider", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -40,6 +40,7 @@ local function constructor(self, parent)
 	slider:SetSize(144, 17)
 	slider:SetBackdrop(backdrop)
 	slider:SetThumbTexture([[Interface\Buttons\UI-SliderBar-Button-Horizontal]])
+	slider:SetOrientation("HORIZONTAL")
 	slider:SetObeyStepOnDrag(true)
 	slider:SetScript("OnEnter", onEnter)
 	slider:SetScript("OnLeave", onLeave)
