@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "ScrollFrame", 1
+local Type, Version = "ScrollFrame", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -11,6 +11,8 @@ ScrollFrame.HybridPrototype = ScrollFrame.HybridPrototype or CreateFrame("Scroll
 
 local fauxMT = {__index = ScrollFrame.FauxPrototype}
 local hybridMT = {__index = ScrollFrame.HybridPrototype}
+
+local HybridPrototype = ScrollFrame.HybridPrototype
 
 local function fauxOnVerticalScroll(self, offset)
 	self.Scrollbar:SetValue(offset)
@@ -48,10 +50,50 @@ local hybridMethods = {
 	-- Update = HybridScrollFrame_Update,
 	-- SetOffset = HybridScrollFrame_SetOffset,
 	GetOffset = HybridScrollFrame_GetOffset,
+	CollapseButton = HybridScrollFrame_CollapseButton,
 }
 
 for k, v in pairs(hybridMethods) do
 	ScrollFrame.HybridPrototype[k] = v
+end
+
+local function setHeader(self)
+	self:SetHeight(self.parent.headerHeight)
+end
+
+local function resetHeight(self)
+	self:SetHeight(self.parent.buttonHeightReal)
+end
+
+function HybridPrototype:CreateButtons()
+	self.buttons = self.buttons or {}
+	local numButtons = ceil(self:GetHeight() / self.buttonHeightReal) + 1
+	for i = #self.buttons + 1, numButtons do
+		local button = self:createButton()
+		if i == 1 then
+			button:SetPoint(self.initialPoint or "TOPLEFT", self.scrollChild, self.initialRelative or "TOPLEFT", self.initialOffsetX, self.initialOffsetY)
+		else
+			button:SetPoint(self.point or "TOPLEFT", self.buttons[i - 1], self.relativePoint or "BOTTOMLEFT", self.offsetX, self.offsetY)
+		end
+		button:SetHeight(self.buttonHeightReal)
+		button.SetHeader = setHeader
+		button.ResetHeight = resetHeight
+		button.parent = self
+		self.buttons[i] = button
+	end
+	HybridScrollFrame_CreateButtons(self, nil, nil, nil, nil, nil, nil, self.offsetY)
+end
+
+function HybridPrototype:SetButtonHeight(height)
+	self.buttonHeightReal = height
+end
+
+function HybridPrototype:SetHeaderHeight(height)
+	self.headerHeight = height
+end
+
+function HybridPrototype:ExpandButton(numButtons)
+	HybridScrollFrame_ExpandButton(self, numButtons * self.buttonHeight, self.headerHeight)
 end
 
 Libra:RegisterModule(Type, Version, constructor)
