@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Editbox", 1
+local Type, Version = "Editbox", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -19,6 +19,7 @@ local function constructor(self, parent, isSearchBox)
 	local name = Libra:GetWidgetName(self.name)
 	local editbox = CreateFrame("EditBox", name, parent, isSearchBox and "SearchBoxTemplate" or "InputBoxTemplate")
 	editbox:SetHeight(20)
+	editbox:SetAutoFocus(false)
 	editbox:SetFontObject("ChatFontSmall")
 	if isSearchBox then
 		editbox:SetTextColor(0.5, 0.5, 0.5)

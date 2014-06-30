@@ -23,7 +23,7 @@ local function createFrame(name, parent)
 	
 	local title = frame:CreateFontString(nil, nil, "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 16, -16)
-	-- title:SetPoint("RIGHT", -16, 0)
+	title:SetPoint("RIGHT", -16, 0)
 	title:SetJustifyH("LEFT")
 	title:SetJustifyV("TOP")
 	title:SetText(name)
@@ -32,7 +32,7 @@ local function createFrame(name, parent)
 	local desc = frame:CreateFontString(nil, nil, "GameFontHighlightSmall")
 	desc:SetHeight(32)
 	desc:SetPoint("TOPLEFT", frame.title, "BOTTOMLEFT", 0, -8)
-	desc:SetPoint("RIGHT", -32, 0)
+	desc:SetPoint("RIGHT", -31, 0)
 	desc:SetJustifyH("LEFT")
 	desc:SetJustifyV("TOP")
 	desc:SetNonSpaceWrap(true)
@@ -44,57 +44,112 @@ end
 local function constructor(self, name)
 	local frame = setmetatable(createFrame(name), parentMT)
 	frame.controls = {}
+	frame.allcontrols = {}
 	return frame
 end
 
 
-function ParentPrototype:AddSubCategory(name, separateControls)
+function ParentPrototype:AddSubCategory(name, inherit)
 	local frame = setmetatable(createFrame(name, self.name), mt)
-	frame.db = self.db
-	frame.controls = separateControls and {} or self.controls
+	if inherit then
+		frame.db = self.db
+		frame.useProfile = self.useProfile
+		frame.handler = self.handler
+		frame.allcontrols = self.allcontrols
+	else
+		frame.allcontrols = {}
+	end
+	frame.inherit = inherit
+	frame.controls = {}
 	self.subCategories = self.subCategories or {}
 	tinsert(self.subCategories, frame)
 	return frame
-end
-
-function Prototype:SetDatabase(database)
-	self.db = database
-	if self.subCategories then
-		for i, v in ipairs(self.subCategories) do
-			v.db = database
-		end
-	end
 end
 
 function Prototype:SetDescription(text)
 	self.desc:SetText(text)
 end
 
-local controls = {}
+function Prototype:SetDatabase(database, useProfile)
+	self.db = database
+	self.useProfile = useProfile
+	if self.subCategories then
+		for i, v in ipairs(self.subCategories) do
+			if v.inherit then
+				v.db = database
+			end
+		end
+	end
+end
 
-local function set(self, value)
+function Prototype:SetHandler(tbl)
+	self.handler = tbl
+	if self.subCategories then
+		for i, v in ipairs(self.subCategories) do
+			if v.inherit then
+				v.handler = tbl
+			end
+		end
+	end
+end
+
+
+local function getTable(control)
+	local tbl = control.parent.db
+	if control.parent.useProfile then
+		tbl = tbl.profile
+	end
+	if control.keyTable then
+		tbl = tbl[control.keyTable]
+	end
+	return tbl
+end
+
+local function set(self, value, key)
 	if self.set then
-		self:set(value)
-	elseif self.parent.db then
-		self.parent.db[self.key] = value
+		if key then
+			self:set(key, value)
+		else
+			self:set(value)
+		end
+	else
+		local tbl = getTable(self)
+		if tbl then
+			tbl[key or self.key] = value
+		end
 	end
-	if self.func then
-		self:func(value)
+	local func = self.func
+	if func then
+		local object = self
+		if type(func) == "string" then
+			object = self.parent.handler
+			func = object[func]
+		end
+		if key then
+			func(object, key, value)
+		else
+			func(object, value)
+		end
 	end
-	for key, control in pairs(self.parent.controls) do
+	for key, control in pairs(self.parent.allcontrols) do
 		if control.disabled then
 			control:SetEnabled(not control.disabled())
 		end
 	end
 end
 
-local function get(self)
+local function get(self, key)
 	if self.get then
-		return self:get()
-	elseif self.parent.db then
-		return self.parent.db[self.key]
+		return self:get(key)
+	else
+		local tbl = getTable(self)
+		if tbl then
+			return tbl[key or self.key]
+		end
 	end
 end
+
+local controls = {}
 
 do
 	local function onClick(self)
@@ -105,12 +160,15 @@ do
 	
 	controls.CheckButton = function(parent)
 		local checkButton = CreateFrame("CheckButton", nil, parent, "OptionsBaseCheckButtonTemplate")
+		checkButton:SetNormalFontObject("GameFontHighlight")
+		checkButton:SetDisabledFontObject("GameFontDisable")
 		checkButton:SetPushedTextOffset(0, 0)
 		checkButton:SetScript("OnClick", onClick)
 		checkButton.SetValue = checkButton.SetChecked
 		
-		checkButton.label = checkButton:CreateFontString(nil, nil, "GameFontHighlight")
+		checkButton.label = checkButton:CreateFontString()
 		checkButton.label:SetPoint("LEFT", checkButton, "RIGHT", 0, 1)
+		checkButton:SetFontString(checkButton.label)
 		
 		return checkButton
 	end
@@ -140,36 +198,53 @@ do
 		saveColor(ColorPickerFrame.extraInfo, ColorPicker_GetPreviousValues())
 	end
 	
-	local function onClick(self)
-		local info = UIDropDownMenu_CreateInfo()
-		local color = get(self)
-		info.r, info.g, info.b = color.r, color.g, color.b
-		info.swatchFunc = swatchFunc
-		info.cancelFunc = cancelFunc
-		info.extraInfo = self
-		OpenColorPicker(info)
-	end
-	
-	local function onEnter(self)
-		self.bg:SetVertexColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
-		if self.tooltipText then
-			GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
-			GameTooltip:SetText(self.tooltipText, nil, nil, nil, nil, true)
-		end
-	end
-	
-	local function onLeave(self)
-		self.bg:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
-		GameTooltip:Hide()
-	end
+	local scripts = {
+		OnClick = function(self)
+			local info = UIDropDownMenu_CreateInfo()
+			local color = get(self)
+			info.r, info.g, info.b = color.r, color.g, color.b
+			info.swatchFunc = swatchFunc
+			info.cancelFunc = cancelFunc
+			info.extraInfo = self
+			OpenColorPicker(info)
+		end,
+		
+		OnEnter = function(self)
+			self.bg:SetVertexColor(NORMAL_FONT_COLOR.r, NORMAL_FONT_COLOR.g, NORMAL_FONT_COLOR.b)
+			if self.tooltipText then
+				GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+				GameTooltip:SetText(self.tooltipText, nil, nil, nil, nil, true)
+			end
+		end,
+		
+		OnLeave = function(self)
+			self.bg:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+			GameTooltip:Hide()
+		end,
+		
+		OnEnable = function(self)
+			if self:IsMouseOver() then
+				self:OnEnter()
+			else
+				self.bg:SetVertexColor(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+			end
+		end,
+		
+		OnDisable = function(self)
+			self.bg:SetVertexColor(GRAY_FONT_COLOR.r, GRAY_FONT_COLOR.g, GRAY_FONT_COLOR.b)
+		end,
+	}
 	
 	controls.ColorButton = function(parent, data)
 		local colorButton = CreateFrame("Button", nil, parent)
 		colorButton:SetSize(16, 16)
+		colorButton:SetNormalFontObject("GameFontHighlight")
+		colorButton:SetDisabledFontObject("GameFontDisable")
 		colorButton:SetPushedTextOffset(0, 0)
-		colorButton:SetScript("OnClick", onClick)
-		colorButton:SetScript("OnEnter", onEnter)
-		colorButton:SetScript("OnLeave", onLeave)
+		for script, handler in pairs(scripts) do
+			colorButton:SetScript(script, handler)
+			colorButton[script] = handler
+		end
 		colorButton.SetValue = setColor
 		
 		colorButton:SetNormalTexture([[Interface\ChatFrame\ChatFrameColorSwatch]])
@@ -180,9 +255,9 @@ do
 		colorButton.bg:SetPoint("CENTER")
 		colorButton.bg:SetTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
 		
-		colorButton.label = colorButton:CreateFontString(nil, nil, "GameFontHighlight")
+		colorButton.label = colorButton:CreateFontString()
 		colorButton.label:SetPoint("LEFT", colorButton, "RIGHT", 5, 1)
-		colorButton.label:SetJustifyH("LEFT")
+		colorButton:SetFontString(colorButton.label)
 		
 		return colorButton
 	end
@@ -193,12 +268,33 @@ do
 		if isUserInput then
 			set(self, value)
 		end
-		self.currentValue:SetText(value)
+		if self.isPercent then
+			self.currentValue:SetFormattedText("%.0f%%", value * 100)
+		else
+			self.currentValue:SetText(value)
+		end
+	end
+	
+	local function onMinMaxChanged(self, min, max)
+		if self.minText or not self.isPercent then
+			self.min:SetText(self.minText or min)
+		else
+			self.min:SetFormattedText("%.0f%%", min * 100)
+		end
+		if self.maxText or not self.isPercent then
+			self.max:SetText(self.maxText or max)
+		else
+			self.max:SetFormattedText("%.0f%%", max * 100)
+		end
 	end
 	
 	controls.Slider = function(parent, data)
 		local slider = Libra:CreateSlider(parent)
 		slider:SetScript("OnValueChanged", onValueChanged)
+		slider:SetScript("OnMinMaxChanged", onMinMaxChanged)
+		slider.isPercent = data.isPercent
+		slider.minText = data.minText
+		slider.maxText = data.maxText
 		slider:SetMinMaxValues(data.min, data.max)
 		slider:SetValueStep(data.step)
 		return slider
@@ -206,22 +302,83 @@ do
 end
 
 do
+	local function setText(self, value)
+		if not self.properties or not self.properties.text then
+			self:SetText(value)
+		else
+			if type(self.properties.text) == "function" then
+				self:SetText(self.properties.text(value))
+			elseif type(self.properties.text) == "table" then
+				self:SetText(self.properties.text[value])
+			else
+				self:SetText(self.properties.text)
+			end
+		end
+	end
+	
+	local copyProperties = {
+		"text",
+		"value",
+		"arg1",
+	}
+	
+	local function onClick(self, arg1, arg2, checked)
+		if self.owner.multiSelect then
+			set(self.owner, checked, arg1)
+		else
+			self.owner:SetText(self:GetText())
+			set(self.owner, arg1)
+		end
+	end
+	
+	local function checked(self)
+		if self.owner.multiSelect then
+			return get(self.owner, self.arg1)
+		else
+			return self.arg1 == get(self.owner)
+		end
+	end
+	
 	local function initialize(self, level, menuList)
+		menuList = menuList or self.menulist
+		if type(menuList) == "function" then
+			menuList = menuList()
+		end
 		for i, v in ipairs(menuList) do
 			local info = UIDropDownMenu_CreateInfo()
-			info.text = v
-			info.func = set
-			info.arg1 = v
-			info.checked = (v == PM.db.font)
+			for i, propertyName in ipairs(copyProperties) do
+				if not self.properties or not self.properties[propertyName] then
+					info[propertyName] = v
+				else
+					if type(self.properties[propertyName]) == "function" then
+						info[propertyName] = self.properties[propertyName](v)
+					elseif type(self.properties[propertyName]) == "table" then
+						info[propertyName] = self.properties[propertyName][v]
+					else
+						info[propertyName] = self.properties[propertyName]
+					end
+				end
+			end
+			info.func = onClick
+			info.checked = checked
+			info.isNotRadio = self.multiSelect
 			self:AddButton(info)
 		end
 	end
 	
 	controls.Dropdown = function(parent, data)
 		local dropdown = Libra:CreateDropdown("Frame", parent)
-		dropdown.SetValue = dropdown.SetText
+		dropdown:JustifyText("LEFT")
+		dropdown.SetValue = setText
 		dropdown.initialize = data.initialize or initialize
-		dropdown.menuList = data.menuList
+		dropdown.menulist = data.menuList
+		dropdown.multiSelect = data.multiSelect
+		if data.properties then
+			dropdown.properties = {}
+			for k, v in pairs(data.properties) do
+				dropdown.properties[k] = v
+			end
+		end
 		return dropdown
 	end
 end
@@ -266,23 +423,37 @@ function Prototype:CreateOptions(options)
 			control:SetWidth(option.width)
 		end
 		control.parent = self
-		control.label:SetText(option.label)
-		control.tooltipText = option.tooltipText
+		control.label:SetText(option.text)
+		control.tooltipText = option.tooltip
 		control.key = option.key
 		control.set = option.set
 		control.get = option.get
 		control.func = option.func
 		control.disabled = option.disabled
 		tinsert(self.controls, control)
+		tinsert(self.allcontrols, control)
 	end
 end
 
 function Prototype:SetupControls()
-	for i, control in ipairs(self.controls) do
+	for i, control in ipairs(self.allcontrols) do
 		local value = get(control)
 		control:SetValue(value)
-		if control.func then
-			control:func(value)
+		-- if control.func then
+			-- control:func(value)
+		-- end
+		local func = control.func
+		if func then
+			local object = control
+			if type(func) == "string" then
+				object = control.parent.handler
+				func = object[func]
+			end
+			if key then
+				func(object, key, value)
+			else
+				func(object, value)
+			end
 		end
 		if control.disabled then
 			control:SetEnabled(not control.disabled())

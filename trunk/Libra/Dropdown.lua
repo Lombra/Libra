@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 6
+local Type, Version = "Dropdown", 7
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -33,6 +33,7 @@ local function constructor(self, type, parent, name)
 	if type == "Frame" then
 		name = name or Libra:GetWidgetName(self.name)
 		dropdown = setmetatable(CreateFrame("Frame", name, parent, "UIDropDownMenuTemplate"), frameMT)
+		dropdown:SetWidth(115)
 		dropdown.label = dropdown:CreateFontString(name.."Label", "BACKGROUND", "GameFontNormalSmall")
 		dropdown.label:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 16, 3)
 	end
@@ -90,6 +91,12 @@ function Prototype:CloseMenus(level)
 	if UIDropDownMenu_GetCurrentDropDown() == self then
 		CloseDropDownMenus(level)
 	end
+end
+
+function Prototype:IsMenuShown(level)
+	level = level or 1
+	local listFrame = _G["DropDownList"..level]
+	return UIDropDownMenu_GetCurrentDropDown() == self and listFrame and listFrame:IsShown()
 end
 
 function Prototype:SetSelectedName(name, useValue)
@@ -158,6 +165,7 @@ local menuMethods = {
 	Rebuild = Prototype.RebuildMenu,
 	Hide = Prototype.HideMenu,
 	Close = Prototype.CloseMenus,
+	IsShown = Prototype.IsMenuShown,
 }
 
 for k, v in pairs(menuMethods) do
