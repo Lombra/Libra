@@ -4,6 +4,7 @@
 	
 	<Script file="Addon.lua"/>
 	<Script file="UIPanel.lua"/>
+	<Script file="AceDBControls.lua"/>
 	<Script file="Dropdown.lua"/>
 	<Script file="Editbox.lua"/>
 	<Script file="OptionsFrame.lua"/>
