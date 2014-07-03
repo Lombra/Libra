@@ -105,32 +105,31 @@ local function getTable(control)
 	return tbl
 end
 
-local function set(self, value, key)
-	if self.set then
-		if key then
-			self:set(key, value)
-		else
-			self:set(value)
+local function getFunc(control, method, value, key)
+	local func = control[method]
+	if func then
+		local object = control
+		if type(func) == "string" then
+			object = control.parent.handler
+			func = object[func]
 		end
-	else
+		if key then
+			return true, func(object, key, value)
+		else
+			return true, func(object, value)
+		end
+		return true
+	end
+end
+
+local function set(self, value, key)
+	if not getFunc(self, "set", key, value) then
 		local tbl = getTable(self)
 		if tbl then
 			tbl[key or self.key] = value
 		end
 	end
-	local func = self.func
-	if func then
-		local object = self
-		if type(func) == "string" then
-			object = self.parent.handler
-			func = object[func]
-		end
-		if key then
-			func(object, key, value)
-		else
-			func(object, value)
-		end
-	end
+	getFunc(self, "func", key, value)
 	for key, control in pairs(self.parent.allcontrols) do
 		if control.disabled then
 			control:SetEnabled(not control.disabled())
@@ -139,8 +138,9 @@ local function set(self, value, key)
 end
 
 local function get(self, key)
-	if self.get then
-		return self:get(key)
+	local hasFunc, value = getFunc(self, "get", key)
+	if hasFunc then
+		return value
 	else
 		local tbl = getTable(self)
 		if tbl then
@@ -302,18 +302,24 @@ do
 end
 
 do
-	local function setText(self, value)
-		if not self.properties or not self.properties.text then
-			self:SetText(value)
+	local function getValue(dropdown, property, value)
+		local properties = dropdown.properties
+		local property = properties and properties[property]
+		if not properties or not property then
+			return value
 		else
-			if type(self.properties.text) == "function" then
-				self:SetText(self.properties.text(value))
-			elseif type(self.properties.text) == "table" then
-				self:SetText(self.properties.text[value])
+			if type(property) == "function" then
+				return property(value)
+			elseif type(property) == "table" then
+				return property[value]
 			else
-				self:SetText(self.properties.text)
+				return property
 			end
 		end
+	end
+	
+	local function setText(self, value)
+		self:SetText(getValue(self, "text", value))
 	end
 	
 	local copyProperties = {
@@ -347,17 +353,7 @@ do
 		for i, v in ipairs(menuList) do
 			local info = UIDropDownMenu_CreateInfo()
 			for i, propertyName in ipairs(copyProperties) do
-				if not self.properties or not self.properties[propertyName] then
-					info[propertyName] = v
-				else
-					if type(self.properties[propertyName]) == "function" then
-						info[propertyName] = self.properties[propertyName](v)
-					elseif type(self.properties[propertyName]) == "table" then
-						info[propertyName] = self.properties[propertyName][v]
-					else
-						info[propertyName] = self.properties[propertyName]
-					end
-				end
+				info[propertyName] = getValue(self, propertyName, v)
 			end
 			info.func = onClick
 			info.checked = checked
@@ -439,22 +435,7 @@ function Prototype:SetupControls()
 	for i, control in ipairs(self.allcontrols) do
 		local value = get(control)
 		control:SetValue(value)
-		-- if control.func then
-			-- control:func(value)
-		-- end
-		local func = control.func
-		if func then
-			local object = control
-			if type(func) == "string" then
-				object = control.parent.handler
-				func = object[func]
-			end
-			if key then
-				func(object, key, value)
-			else
-				func(object, value)
-			end
-		end
+		getFunc(control, "func", key, value)
 		if control.disabled then
 			control:SetEnabled(not control.disabled())
 		end

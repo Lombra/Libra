@@ -2,19 +2,10 @@ local Libra = LibStub("Libra")
 local Type, Version = "Slider", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
-Libra.modules[Type] = Libra.modules[Type] or {}
-
-local Slider = Libra.modules[Type]
-Slider.Prototype = Slider.Prototype or CreateFrame("Slider")
-
-local Prototype = Slider.Prototype
-local mt = {__index = Prototype}
-
 local backdrop = {
 	bgFile = [[Interface\Buttons\UI-SliderBar-Background]],
 	edgeFile = [[Interface\Buttons\UI-SliderBar-Border]],
 	edgeSize = 8,
-	-- tile = true, tileSize = 8,
 	insets = {left = 3, right = 3, top = 6, bottom = 6}
 }
 
@@ -36,7 +27,7 @@ local function onLeave(self)
 end
 
 local function constructor(self, parent)
-	local slider = setmetatable(CreateFrame("Slider", nil, parent), mt)
+	local slider = CreateFrame("Slider", nil, parent)
 	slider:SetSize(144, 17)
 	slider:SetBackdrop(backdrop)
 	slider:SetThumbTexture([[Interface\Buttons\UI-SliderBar-Button-Horizontal]])
@@ -59,13 +50,5 @@ local function constructor(self, parent)
 	
 	return slider
 end
-
-
--- local methods = {
--- }
-
--- for k, v in pairs(methods) do
-	-- Prototype[k] = v
--- end
 
 Libra:RegisterModule(Type, Version, constructor)
