@@ -4,6 +4,11 @@ if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
 
+local AceDBControls = Libra.modules[Type]
+AceDBControls.Prototype = AceDBControls.Prototype or CreateFrame("Frame")
+
+local Prototype = AceDBControls.Prototype
+local mt = {__index = Prototype}
 
 local L = {
 	default = "Default",
@@ -120,7 +125,7 @@ local function getProfiles(db, common, nocurrent)
 		end 
 	end
 	
-	-- add our default profiles to choose from ( or rename existing profiles)
+	-- add our default profiles to choose from (or rename existing profiles)
 	for k, v in pairs(defaultProfiles) do
 		if (common or profiles[k]) and not (nocurrent and k == currentProfile) then
 			profiles[k] = v
@@ -166,7 +171,7 @@ local function menuButton_OnClick(self)
 end
 
 local function createMenuButton(parent)
-	local button = CreateFrame("Button", Libra:GetWidgetName(), parent, "UIMenuButtonStretchTemplate")
+	local button = Libra:CreateButton(parent)
 	button:SetScript("OnClick", menuButton_OnClick)
 	button.rightArrow:Show()
 	button:SetWidth(88)
@@ -177,60 +182,11 @@ local function createMenuButton(parent)
 	menu.relativeTo = button
 	menu.initialize = initializeDropdown
 	menu.nocurrent = true
+	menu.db = parent.db
 	button.menu = menu
 	
 	return button
 end
-
-local function profilesLoaded(self)
-	local db = self.db
-	
-	for k, object in pairs(self.objects) do
-		object.db = db
-		self[k] = object
-	end
-	
-	db.RegisterCallback(self, "OnNewProfile")
-	db.RegisterCallback(self, "OnProfileChanged")
-	db.RegisterCallback(self, "OnProfileDeleted")
-	
-	local keys = db.keys
-	defaultProfiles["Default"] = L.default
-	defaultProfiles[keys.char] = keys.char
-	defaultProfiles[keys.realm] = keys.realm
-	defaultProfiles[keys.class] = UnitClass("player")
-	
-	self.choose:SetText(db:GetCurrentProfile())
-	
-	local isDualSpecEnabled = db:IsDualSpecEnabled()
-	self.dualEnabled:SetChecked(isDualSpecEnabled)
-	self.dualProfile:SetEnabled(isDualSpecEnabled)
-	self.dualProfile:SetText(db:GetDualSpecProfile())
-	
-	self:CheckProfiles()
-end
-
-local mixins = {
-	OnNewProfile = function(self, event, db, profile)
-		self:CheckProfiles()
-	end,
-	OnProfileChanged = function(self, event, db, profile)
-		self.choose:SetText(profile)
-		self.dualProfile:SetText(db:GetDualSpecProfile())
-		self:CheckProfiles()
-	end,
-	OnProfileDeleted = function(self, event, db, profile)
-		self:CheckProfiles()
-	end,
-	CheckProfiles = function(self)
-		local hasNoProfiles = self:HasNoProfiles()
-		-- self.copy:SetDisabled(hasNoProfiles)
-		-- self.delete:SetDisabled(hasNoProfiles)
-	end,
-	HasNoProfiles = function(self)
-		return next(getProfiles(self.db, nil, true)) == nil
-	end,
-}
 
 local createProfileScripts = {
 	OnEnterPressed = function(self)
@@ -256,91 +212,6 @@ local function deleteProfile(db, profile)
 	StaticPopup_Show("DELETE_PROFILE", nil, nil, {db = db, profile = profile})
 end
 
-local function constructor(self, db, parent)
-	frame = CreateFrame("Frame", nil, parent)
-	frame:SetSize(192, 192)
-	frame.db = db
-	
-	frame.ProfilesLoaded = profilesLoaded
-	for k, v in pairs(mixins) do frame[k] = v end
-	
-	-- addon.RegisterCallback(frame, "AddonLoaded", "ProfilesLoaded")
-	
-	local objects = {}
-	frame.objects = objects
-	
-	local choose = createDropdown(frame)
-	choose:SetPoint("TOP")
-	choose.label:SetText(L.choose)
-	choose.getCurrent = db.GetCurrentProfile
-	choose.func = db.SetProfile
-	choose.common = true
-	objects.choose = choose
-	
-	local newProfile = Libra:CreateEditbox(frame)
-	newProfile:SetPoint("TOPLEFT", choose, "BOTTOMLEFT", 24, -8)
-	newProfile:SetPoint("TOPRIGHT", choose, "BOTTOMRIGHT", -17, -8)
-	newProfile:SetTextColor(0.5, 0.5, 0.5)
-	newProfile:SetScript("OnEscapePressed", newProfile.ClearFocus)
-	for script, handler in pairs(createProfileScripts) do
-		newProfile:SetScript(script, handler)
-	end
-	objects.newProfile = newProfile
-	
-	local label = newProfile:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
-	label:SetPoint("BOTTOMLEFT", newProfile, "TOPLEFT", -5, -2)
-	label:SetPoint("BOTTOMRIGHT", newProfile, "TOPRIGHT", 0, -2)
-	label:SetJustifyH("LEFT")
-	label:SetHeight(18)
-	label:SetText(L.new)
-	
-	local copy = createMenuButton(frame)
-	copy:SetPoint("TOPLEFT", newProfile, "BOTTOMLEFT", -9, -4)
-	copy:SetText("Copy from")
-	copy.menu.func = db.CopyProfile
-	objects.copy = copy.menu
-
-	local delete = createMenuButton(frame)
-	delete:SetPoint("TOPRIGHT", newProfile, "BOTTOMRIGHT", 4, -4)
-	delete:SetText("Delete")
-	delete.menu.func = deleteProfile
-	objects.delete = delete.menu
-	
-	local reset = CreateFrame("Button", Libra:GetWidgetName(), frame, "UIMenuButtonStretchTemplate")
-	reset:SetWidth(96)
-	reset:SetPoint("TOPLEFT", copy, "BOTTOM", 0, -4)
-	reset:SetPoint("TOPRIGHT", delete, "BOTTOM", 0, -4)
-	reset:SetScript("OnClick", function(self) self.db:ResetProfile() end)
-	reset:SetText(L.reset)
-	objects.reset = reset
-	
-	local hasDualProfile = db:GetNamespace("LibDualSpec-1.0", true)
-	if hasDualProfile then
-		local dualProfile = createDropdown(frame)
-		dualProfile:SetPoint("TOP", reset, "BOTTOM", 0, -28)
-		-- dualProfile:SetPoint("LEFT", choose)
-		dualProfile.getCurrent = db.GetDualSpecProfile
-		dualProfile.func = db.SetDualSpecProfile
-		dualProfile.common = true
-		objects.dualProfile = dualProfile
-		
-		local enabled = CreateFrame("CheckButton", nil, frame, "OptionsBaseCheckButtonTemplate")
-		enabled:SetPoint("BOTTOMLEFT", dualProfile, "TOPLEFT", 16, 0)
-		enabled:SetPushedTextOffset(0, 0)
-		enabled:SetScript("OnClick", enableDualProfileOnClick)
-		enabled.tooltipText = L.enable_desc
-		local text = enabled:CreateFontString(nil, nil, "GameFontHighlight")
-		text:SetPoint("LEFT", enabled, "RIGHT", 0, 1)
-		text:SetText(L.enabled)
-		objects.dualEnabled = enabled
-
-		enabled.dualProfile = dualProfile
-	end
-	
-	profilesLoaded(frame)
-	return frame
-end
-
 StaticPopupDialogs["DELETE_PROFILE"] = {
 	text = L.delete_confirm,
 	button1 = YES,
@@ -349,5 +220,126 @@ StaticPopupDialogs["DELETE_PROFILE"] = {
 		data.db:DeleteProfile(data.profile)
 	end,
 }
+
+local function constructor(self, db, parent)
+	local frame = setmetatable(CreateFrame("Frame", nil, parent), mt)
+	frame:SetSize(192, 192)
+	frame.db = db
+	
+	db.RegisterCallback(frame, "OnNewProfile")
+	db.RegisterCallback(frame, "OnProfileChanged")
+	db.RegisterCallback(frame, "OnProfileDeleted")
+	
+	local keys = db.keys
+	defaultProfiles["Default"] = L.default
+	defaultProfiles[keys.char] = keys.char
+	defaultProfiles[keys.realm] = keys.realm
+	defaultProfiles[keys.class] = UnitClass("player")
+	
+	local objects = {}
+	
+	do	-- create the controls
+		local choose = createDropdown(frame)
+		choose:SetPoint("TOP")
+		choose.label:SetText(L.choose)
+		choose.func = db.SetProfile
+		choose.getCurrent = db.GetCurrentProfile
+		choose.common = true
+		objects.choose = choose
+		
+		local newProfile = Libra:CreateEditbox(frame)
+		newProfile:SetPoint("TOPLEFT", choose, "BOTTOMLEFT", 24, -8)
+		newProfile:SetPoint("TOPRIGHT", choose, "BOTTOMRIGHT", -17, -8)
+		newProfile:SetTextColor(0.5, 0.5, 0.5)
+		newProfile:SetScript("OnEscapePressed", newProfile.ClearFocus)
+		for script, handler in pairs(createProfileScripts) do
+			newProfile:SetScript(script, handler)
+		end
+		objects.newProfile = newProfile
+		
+		local label = newProfile:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+		label:SetHeight(18)
+		label:SetPoint("BOTTOMLEFT", newProfile, "TOPLEFT", -5, -2)
+		label:SetPoint("BOTTOMRIGHT", newProfile, "TOPRIGHT", 0, -2)
+		label:SetJustifyH("LEFT")
+		label:SetText(L.new)
+		
+		local copy = createMenuButton(frame)
+		copy:SetPoint("TOPLEFT", newProfile, "BOTTOMLEFT", -9, -4)
+		copy:SetText("Copy from")
+		copy.menu.func = db.CopyProfile
+		objects.copy = copy
+
+		local delete = createMenuButton(frame)
+		delete:SetPoint("TOPRIGHT", newProfile, "BOTTOMRIGHT", 4, -4)
+		delete:SetText("Delete")
+		delete.menu.func = deleteProfile
+		objects.delete = delete
+		
+		local reset = Libra:CreateButton(frame)
+		reset:SetPoint("TOPLEFT", copy, "BOTTOM", 0, -4)
+		reset:SetPoint("TOPRIGHT", delete, "BOTTOM", 0, -4)
+		reset:SetScript("OnClick", function(self) self.db:ResetProfile() end)
+		reset:SetText(L.reset)
+		objects.reset = reset
+		
+		local hasDualProfile = db:GetNamespace("LibDualSpec-1.0", true)
+		if hasDualProfile then
+			local dualProfile = createDropdown(frame)
+			dualProfile:SetPoint("TOP", reset, "BOTTOM", 0, -28)
+			dualProfile.func = db.SetDualSpecProfile
+			dualProfile.getCurrent = db.GetDualSpecProfile
+			dualProfile.common = true
+			objects.dualProfile = dualProfile
+			
+			local enabled = CreateFrame("CheckButton", nil, frame, "OptionsBaseCheckButtonTemplate")
+			enabled:SetPoint("BOTTOMLEFT", dualProfile, "TOPLEFT", 16, 0)
+			enabled:SetPushedTextOffset(0, 0)
+			enabled:SetScript("OnClick", enableDualProfileOnClick)
+			enabled.tooltipText = L.enable_desc
+			enabled.dualProfile = dualProfile
+			objects.dualEnabled = enabled
+			
+			local text = enabled:CreateFontString(nil, nil, "GameFontHighlight")
+			text:SetPoint("LEFT", enabled, "RIGHT", 0, 1)
+			text:SetText(L.enabled)
+		end
+	end
+	
+	for k, object in pairs(objects) do
+		object.db = db
+		frame[k] = object
+	end
+	
+	frame.choose:SetText(db:GetCurrentProfile())
+	
+	local isDualSpecEnabled = db:IsDualSpecEnabled()
+	frame.dualEnabled:SetChecked(isDualSpecEnabled)
+	frame.dualProfile:SetEnabled(isDualSpecEnabled)
+	frame.dualProfile:SetText(db:GetDualSpecProfile())
+	
+	frame:CheckProfiles()
+	
+	return frame
+end
+
+function Prototype:CheckProfiles()
+	local hasProfiles = not self:HasNoProfiles()
+	self.copy:SetEnabled(hasProfiles)
+	self.delete:SetEnabled(hasProfiles)
+end
+
+function Prototype:HasNoProfiles()
+	return next(getProfiles(self.db, nil, true)) == nil
+end
+
+function Prototype:OnProfileChanged(event, db, profile)
+	self.choose:SetText(profile)
+	self.dualProfile:SetText(db:GetDualSpecProfile())
+	self:CheckProfiles()
+end
+
+Prototype.OnNewProfile = Prototype.CheckProfiles
+Prototype.OnProfileDeleted = Prototype.CheckProfiles
 
 Libra:RegisterModule(Type, Version, constructor)

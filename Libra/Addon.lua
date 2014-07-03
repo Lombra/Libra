@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Addon", 1
+local Type, Version = "Addon", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -73,7 +73,7 @@ function Libra:NewAddon(name, addonObject)
 	AddonEmbed(addon)
 	ObjectEmbed(addon)
 	object.addons[name] = addon
-	return addon
+	return addon, name
 end
 
 function Libra:GetAddon(name)
@@ -86,7 +86,7 @@ function AddonPrototype:NewModule(name, table)
 	module.name = name
 	self.modules[name] = module
 	safecall(self, "OnModuleCreated", name, module)
-	return module
+	return module, name
 end
 
 function AddonPrototype:GetModule(name)
