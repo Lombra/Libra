@@ -413,7 +413,7 @@ function Prototype:CreateOptions(options)
 		else
 			local previousOption = options[i - 1]
 			local previousData = objectData[previousOption.type]
-			control:SetPoint("TOPLEFT", self.controls[#self.controls], "BOTTOMLEFT", data.x - previousData.x, data.y + previousData.bottomOffset - (option.gap or 0))
+			control:SetPoint("TOPLEFT", self.controls[i - 1], "BOTTOMLEFT", data.x - previousData.x, data.y + previousData.bottomOffset - (option.padding or 0))
 		end
 		if option.width then
 			control:SetWidth(option.width)
@@ -438,6 +438,14 @@ function Prototype:SetupControls()
 		getFunc(control, "func", key, value)
 		if control.disabled then
 			control:SetEnabled(not control.disabled())
+		end
+	end
+end
+
+function Prototype:GetControlByKey(key, keyTable)
+	for i, control in ipairs(self.allcontrols) do
+		if control.key == key and control.keyTable == keyTable then
+			return control
 		end
 	end
 end

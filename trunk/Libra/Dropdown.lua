@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 7
+local Type, Version = "Dropdown", 8
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -71,13 +71,23 @@ end
 
 function Prototype:RebuildMenu(level)
 	level = level or 1
-	local listFrame = _G["DropDownList"..level]
-	if listFrame and listFrame:IsShown() and UIDropDownMenu_GetCurrentDropDown() == self then
-		local listData = listData[level]
-		-- set .rebuild to indicate that we don't want to reset the scroll offset on the next ToggleDropDownMenu
-		self.rebuild = true
+	if self:IsMenuShown(level) then
+		-- hiding a menu will also hide all deeper level menus, so we'll check which ones are open and restore them afterwards
+		local maxLevel
+		for i = level, UIDROPDOWNMENU_MENU_LEVEL do
+			if _G["DropDownList"..i]:IsShown() then
+				maxLevel = i
+			else
+				break
+			end
+		end
 		self:HideMenu(level)
-		self:ToggleMenu(listData.value, listData.anchorName, listData.xOffset, listData.yOffset, listData.menuList, level, listData.button, listData.autoHideDelay)
+		for i = level, maxLevel do
+			local listData = listData[i]
+			-- set .rebuild to indicate that we don't want to reset the scroll offset on the next ToggleDropDownMenu
+			self.rebuild = true
+			self:ToggleMenu(listData.value, listData.anchorName, listData.xOffset, listData.yOffset, listData.menuList, i, listData.button, listData.autoHideDelay)
+		end
 	end
 end
 
@@ -144,7 +154,7 @@ function Prototype:GetSelectedID()
 			-- See if checked or not
 			if self:GetSelectedName() then
 				if button:GetText() == self:GetSelectedName() then
-					return i;
+					return i
 				end
 			elseif self:GetSelectedValue() then
 				if button.value == self:GetSelectedValue() then
