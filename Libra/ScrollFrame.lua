@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "ScrollFrame", 2
+local Type, Version = "ScrollFrame", 3
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -67,11 +67,12 @@ end
 
 function HybridPrototype:CreateButtons()
 	self.buttons = self.buttons or {}
+	local scrollChild = self.scrollChild
 	local numButtons = ceil(self:GetHeight() / self.buttonHeightReal) + 1
 	for i = #self.buttons + 1, numButtons do
-		local button = self:createButton()
+		local button = self.createButton(scrollChild)
 		if i == 1 then
-			button:SetPoint(self.initialPoint or "TOPLEFT", self.scrollChild, self.initialRelative or "TOPLEFT", self.initialOffsetX, self.initialOffsetY)
+			button:SetPoint(self.initialPoint or "TOPLEFT", scrollChild, self.initialRelative or "TOPLEFT", self.initialOffsetX, self.initialOffsetY)
 		else
 			button:SetPoint(self.point or "TOPLEFT", self.buttons[i - 1], self.relativePoint or "BOTTOMLEFT", self.offsetX, self.offsetY)
 		end
@@ -81,7 +82,20 @@ function HybridPrototype:CreateButtons()
 		button.parent = self
 		self.buttons[i] = button
 	end
-	HybridScrollFrame_CreateButtons(self, nil, nil, nil, nil, nil, nil, self.offsetY)
+	
+	self.buttonHeight = self.buttonHeightReal - (offsetY or 0)
+	
+	scrollChild:SetWidth(self:GetWidth())
+	scrollChild:SetHeight(numButtons * self.buttonHeightReal)
+	self:SetVerticalScroll(0)
+	self:UpdateScrollChildRect()
+	
+	local scrollBar = self.scrollBar
+	scrollBar:SetMinMaxValues(0, numButtons * self.buttonHeightReal)
+	scrollBar.buttonHeight = self.buttonHeightReal
+	scrollBar:SetValueStep(self.buttonHeightReal)
+	scrollBar:SetStepsPerPage(numButtons - 2)
+	scrollBar:SetValue(0)
 end
 
 function HybridPrototype:SetButtonHeight(height)
