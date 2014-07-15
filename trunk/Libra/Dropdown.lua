@@ -63,7 +63,7 @@ function Prototype:AddButton(info, level)
 	self.selectedName = nil
 	self.selectedValue = nil
 	self.selectedID = nil
-	local listFrameName = "DropDownList"..level
+	local listFrameName = "DropDownList"..(level or 1)
 	local button = _G[listFrameName.."Button"..(_G[listFrameName].numButtons)]
 	button.icon = info.icon
 end
