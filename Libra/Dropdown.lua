@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 8
+local Type, Version = "Dropdown", 9
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -63,6 +63,9 @@ function Prototype:AddButton(info, level)
 	self.selectedName = nil
 	self.selectedValue = nil
 	self.selectedID = nil
+	local listFrameName = "DropDownList"..level
+	local button = _G[listFrameName.."Button"..(_G[listFrameName].numButtons)]
+	button.icon = info.icon
 end
 
 function Prototype:ToggleMenu(value, anchorName, xOffset, yOffset, menuList, level, ...)
