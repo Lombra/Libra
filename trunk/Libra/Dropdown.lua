@@ -64,8 +64,10 @@ function Prototype:AddButton(info, level)
 	self.selectedValue = nil
 	self.selectedID = nil
 	local listFrameName = "DropDownList"..(level or 1)
-	local button = _G[listFrameName.."Button"..(_G[listFrameName].numButtons)]
+	local listFrame = _G[listFrameName]
+	local button = _G[listFrameName.."Button"..(listFrame.numButtons)]
 	button.icon = info.icon
+	listFrame.maxWidth = UIDropDownMenu_GetMaxButtonWidth(listFrame)
 end
 
 function Prototype:ToggleMenu(value, anchorName, xOffset, yOffset, menuList, level, ...)
