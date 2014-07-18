@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "OptionsFrame", 1
+local Type, Version = "OptionsFrame", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -105,7 +105,7 @@ local function getTable(control)
 	return tbl
 end
 
-local function getFunc(control, method, value, key)
+local function getFunc(control, method, key, value)
 	local func = control[method]
 	if func then
 		local object = control
@@ -322,7 +322,7 @@ do
 		self:SetText(getValue(self, "text", value))
 	end
 	
-	local copyProperties = {
+	local defaultProperties = {
 		"text",
 		"value",
 		"arg1",
@@ -352,12 +352,17 @@ do
 		end
 		for i, v in ipairs(menuList) do
 			local info = UIDropDownMenu_CreateInfo()
-			for i, propertyName in ipairs(copyProperties) do
-				info[propertyName] = getValue(self, propertyName, v)
-			end
 			info.func = onClick
 			info.checked = checked
 			info.isNotRadio = self.multiSelect
+			for i, propertyName in ipairs(defaultProperties) do
+				info[propertyName] = getValue(self, propertyName, v)
+			end
+			if self.properties then
+				for propertyName in pairs(self.properties) do
+					info[propertyName] = getValue(self, propertyName, v)
+				end
+			end
 			self:AddButton(info)
 		end
 	end

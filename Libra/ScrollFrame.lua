@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "ScrollFrame", 3
+local Type, Version = "ScrollFrame", 4
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -72,9 +72,9 @@ function HybridPrototype:CreateButtons()
 	for i = #self.buttons + 1, numButtons do
 		local button = self.createButton(scrollChild)
 		if i == 1 then
-			button:SetPoint(self.initialPoint or "TOPLEFT", scrollChild, self.initialRelative or "TOPLEFT", self.initialOffsetX, self.initialOffsetY)
+			button:SetPoint(self.initialPoint or "TOPLEFT", scrollChild, self.initialRelative or "TOPLEFT", (self.initialOffsetX or 0), (self.initialOffsetY or 0))
 		else
-			button:SetPoint(self.point or "TOPLEFT", self.buttons[i - 1], self.relativePoint or "BOTTOMLEFT", self.offsetX, self.offsetY)
+			button:SetPoint(self.point or "TOPLEFT", self.buttons[i - 1], self.relativePoint or "BOTTOMLEFT", (self.offsetX or 0), (self.offsetY or 0))
 		end
 		button:SetHeight(self.buttonHeightReal)
 		button.SetHeader = setHeader
