@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "OptionsFrame", 2
+local Type, Version = "OptionsFrame", 3
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -427,6 +427,7 @@ function Prototype:CreateOptions(options)
 		control.label:SetText(option.text)
 		control.tooltipText = option.tooltip
 		control.key = option.key
+		control.keyTable = option.keyTable
 		control.set = option.set
 		control.get = option.get
 		control.func = option.func

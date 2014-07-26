@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Addon", 2
+local Type, Version = "Addon", 3
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -22,6 +22,7 @@ object.frame:SetScript("OnEvent", function(self, event, ...)
 		local addon = object.addons[...]
 		if addon then
 			safecall(addon, "OnInitialize")
+			addon.OnInitialize = nil
 			for k, module in pairs(addon.modules) do
 				safecall(module, "OnInitialize")
 				module.OnInitialize = nil

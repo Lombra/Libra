@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "ScrollFrame", 4
+local Type, Version = "ScrollFrame", 5
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -83,7 +83,7 @@ function HybridPrototype:CreateButtons()
 		self.buttons[i] = button
 	end
 	
-	self.buttonHeight = self.buttonHeightReal - (offsetY or 0)
+	self.buttonHeight = self.buttonHeightReal - (self.offsetY or 0)
 	
 	scrollChild:SetWidth(self:GetWidth())
 	scrollChild:SetHeight(numButtons * self.buttonHeightReal)
