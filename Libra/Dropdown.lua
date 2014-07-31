@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 9
+local Type, Version = "Dropdown", 10
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -10,6 +10,10 @@ Dropdown.MenuPrototype = Dropdown.MenuPrototype or setmetatable({}, {__index = D
 Dropdown.FramePrototype = Dropdown.FramePrototype or setmetatable({}, {__index = Dropdown.Prototype})
 Dropdown.objects = Dropdown.objects or {}
 Dropdown.listData = Dropdown.listData or {}
+Dropdown.hookedLists = Dropdown.hookedLists or {}
+Dropdown.hookedButtons = Dropdown.hookedButtons or {}
+Dropdown.secureButtons = Dropdown.secureButtons or {}
+Dropdown.secureBin = Dropdown.secureBin or {}
 
 local menuMT = {__index = Dropdown.MenuPrototype}
 local frameMT = {__index = Dropdown.FramePrototype}
@@ -63,11 +67,6 @@ function Prototype:AddButton(info, level)
 	self.selectedName = nil
 	self.selectedValue = nil
 	self.selectedID = nil
-	local listFrameName = "DropDownList"..(level or 1)
-	local listFrame = _G[listFrameName]
-	local button = _G[listFrameName.."Button"..(listFrame.numButtons)]
-	button.icon = info.icon
-	listFrame.maxWidth = UIDropDownMenu_GetMaxButtonWidth(listFrame)
 end
 
 function Prototype:ToggleMenu(value, anchorName, xOffset, yOffset, menuList, level, ...)
@@ -254,38 +253,34 @@ local function scroll(self, delta)
 	update(level)
 end
 
-local function onEnter(self)
-	UIDropDownMenu_StopCounting(self:GetParent())
-end
-
-local function onLeave(self)
-	UIDropDownMenu_StartCounting(self:GetParent())
-end
-
-local function onMouseDown(self)
-	self.texture:SetPoint("CENTER", 1, -1)
-end
-
-local function onMouseUp(self)
-	self.texture:SetPoint("CENTER")
-end
-
-local function onHide(self)
-	self.texture:SetPoint("CENTER")
-	-- explicitly hide so that they are hidden for unmanaged dropdowns
-	self:Hide()
-end
+local scrollScripts = {
+	OnEnter = function(self)
+		UIDropDownMenu_StopCounting(self:GetParent())
+	end,
+	OnLeave = function(self)
+		UIDropDownMenu_StartCounting(self:GetParent())
+	end,
+	OnMouseDown = function(self)
+		self.texture:SetPoint("CENTER", 1, -1)
+	end,
+	OnMouseUp = function(self)
+		self.texture:SetPoint("CENTER")
+	end,
+	OnHide = function(self)
+		self.texture:SetPoint("CENTER")
+		-- explicitly hide so that they are hidden for unmanaged dropdowns
+		self:Hide()
+	end,
+}
 
 local function createScrollButton(listFrame)
 	local level = listFrame:GetID()
 	local button = CreateFrame("Button", nil, listFrame)
 	button:SetSize(16, 16)
 	button:SetScript("OnClick", scroll)
-	button:SetScript("OnEnter", onEnter)
-	button:SetScript("OnLeave", onLeave)
-	button:SetScript("OnMouseDown", onMouseDown)
-	button:SetScript("OnMouseUp", onMouseUp)
-	button:SetScript("OnHide", onHide)
+	for script, handler in pairs(scrollScripts) do
+		button:SetScript(script, handler)
+	end
 	button:SetID(level)
 	button.texture = button:CreateTexture()
 	button.texture:SetSize(16, 16)
@@ -379,5 +374,152 @@ if not Dropdown.hookToggleDropDownMenu then
 	end)
 	Dropdown.hookToggleDropDownMenu = true
 end
+
+function Dropdown:AddButtonHook(info, level)
+	local listFrameName = "DropDownList"..(level or 1)
+	local listFrame = _G[listFrameName]
+	local button = _G[listFrameName.."Button"..(listFrame.numButtons)]
+	button.icon = info.icon
+	listFrame.maxWidth = UIDropDownMenu_GetMaxButtonWidth(listFrame)
+	button.tooltipLines = info.tooltipLines
+	if info.attributes and not InCombatLockdown() then
+		local secureButton = self.secureBin[1]
+		secureButton:SetEnabled(not info.disabled)
+		secureButton:SetParent(button)
+		secureButton:SetAllPoints()
+		secureButton:Show()
+		-- clear existing attributes
+		for attribute in pairs(secureButton.attributes) do
+			secureButton:SetAttribute(attribute, nil)
+			secureButton.attributes[attribute] = nil
+		end
+		for attribute, value in pairs(info.attributes) do
+			secureButton:SetAttribute(attribute, value)
+			secureButton.attributes[attribute] = true
+		end
+		tinsert(Dropdown.secureButtons, secureButton)
+	end
+end
+
+if not Dropdown.hookAddButton then
+	hooksecurefunc("UIDropDownMenu_AddButton", function(...)
+		Dropdown:AddButtonHook(...)
+	end)
+	Dropdown.hookAddButton = true
+end
+
+local function onEnter(self)
+	if self.tooltipLines and self.tooltipTitle and self.tooltipText then
+		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
+		GameTooltip:AddLine(self.tooltipTitle, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+		for line in self.tooltipText:gmatch("[^\n]+") do
+			GameTooltip:AddLine(line)
+		end
+		GameTooltip:Show()
+	end
+end
+
+local function invisibleButtonOnEnter(self)
+	local parent = self:GetParent()
+	if parent.tooltipWhileDisabled then
+		onEnter(parent)
+	end
+end
+
+local function listOnHide(self)
+	if not InCombatLockdown() then
+		for i = #Dropdown.secureButtons, 1, -1 do
+			local button = Dropdown.secureButtons[i]
+			if button:GetParent():GetParent() == self then
+				Dropdown:DismissSecureButton(button)
+				tremove(Dropdown.secureButtons, i)
+			end
+		end
+	end
+end
+
+function Dropdown:CreateFramesHook(numLevels, numButtons)
+	for level = 1, numLevels do
+		if not self.hookedLists[level] then
+			_G["DropDownList"..level]:HookScript("OnHide", listOnHide)
+			self.hookedLists[level] = true
+		end
+		self.hookedButtons[level] = self.hookedButtons[level] or {}
+		for i = 1, numButtons do
+			if not self.hookedButtons[level][i] then
+				_G["DropDownList"..level.."Button"..i]:HookScript("OnEnter", onEnter)
+				_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnEnter", invisibleButtonOnEnter)
+				self.hookedButtons[level][i] = true
+			end
+		end
+	end
+end
+
+if not Dropdown.hookCreateFrames then
+	for level = 1, UIDROPDOWNMENU_MAXLEVELS do
+		_G["DropDownList"..level]:HookScript("OnHide", listOnHide)
+		Dropdown.hookedLists[level] = true
+		Dropdown.hookedButtons[level] = Dropdown.hookedButtons[level] or {}
+		for i = 1, UIDROPDOWNMENU_MAXBUTTONS do
+			_G["DropDownList"..level.."Button"..i]:HookScript("OnEnter", onEnter)
+			_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnEnter", invisibleButtonOnEnter)
+			Dropdown.hookedButtons[level][i] = true
+		end
+	end
+	hooksecurefunc("UIDropDownMenu_CreateFrames", function(...)
+		Dropdown:CreateFramesHook(...)
+	end)
+	Dropdown.hookCreateFrames = true
+end
+
+-- script handlers to mimic regular dropdown button behaviour
+local scripts = {
+	PreClick = function(self)
+		local parent = self:GetParent()
+		parent:GetScript("OnClick")(parent)
+	end,
+	OnMouseDown = function(self)
+		self:GetParent():SetButtonState("PUSHED")
+	end,
+	OnMouseUp = function(self)
+		self:GetParent():SetButtonState("NORMAL")
+	end,
+	OnEnter = function(self)
+		local parent = self:GetParent()
+		parent:GetScript("OnEnter")(parent)
+	end,
+	OnLeave = function(self)
+		local parent = self:GetParent()
+		parent:GetScript("OnLeave")(parent)
+	end,
+}
+
+setmetatable(Dropdown.secureBin, {
+	__index = function(self, index)
+		-- template for secure overlay buttons
+		local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
+		for script, handler in pairs(scripts) do
+			button:SetScript(script, handler)
+		end
+		button.attributes = {}
+		return button
+	end,
+})
+
+function Dropdown:DismissSecureButton(button)
+	button:Hide()
+	button:ClearAllPoints()
+	button:SetParent(nil)
+	tinsert(Dropdown.secureBin, button)
+end
+
+Dropdown.frame = Dropdown.frame or CreateFrame("Frame")
+Dropdown.frame:RegisterEvent("PLAYER_REGEN_DISABLED")
+Dropdown.frame:SetScript("OnEvent", function(self)
+	for i, button in ipairs(Dropdown.secureButtons) do
+		Dropdown:DismissSecureButton(button)
+	end
+	wipe(Dropdown.secureButtons)
+end)
 
 Libra:RegisterModule(Type, Version, constructor)

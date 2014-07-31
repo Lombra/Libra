@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "ScrollFrame", 5
+local Type, Version = "ScrollFrame", 6
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -20,6 +20,29 @@ local function fauxOnVerticalScroll(self, offset)
 	self:Update()
 end
 
+local function update(self)
+	local offset = self:GetOffset()
+	local numItems = self.getNumItems()
+	for i, button in ipairs(self.buttons) do
+		local index = offset + i
+		if index <= numItems then
+			self.updateButton(button, index)
+		end
+		button:SetShown(index <= numItems)
+	end
+	local totalHeight = numItems * self.buttonHeight
+	local displayedHeight = #self.buttons * self.buttonHeight
+	if self.dynamic then
+		totalHeight = self.dynamic()
+	elseif self.largeButtonTop then
+		totalHeight = totalHeight - (self.buttonHeight - self.largeButtonHeight)
+	end
+	HybridScrollFrame_Update(self, totalHeight, displayedHeight)
+	if self.onScroll then
+		self:onScroll()
+	end
+end
+
 local function constructor(self, type, parent, name)
 	local scrollFrame
 	if type == "Faux" then
@@ -29,6 +52,7 @@ local function constructor(self, type, parent, name)
 	if type == "Hybrid" then
 		name = name or Libra:GetWidgetName(self.name)
 		scrollFrame = setmetatable(CreateFrame("ScrollFrame", name, parent, "HybridScrollFrameTemplate"), hybridMT)
+		scrollFrame.update = function() update(scrollFrame) end
 		scrollFrame.scrollBar = CreateFrame("Slider", nil, scrollFrame, "HybridScrollBarTemplate")
 	end
 	
