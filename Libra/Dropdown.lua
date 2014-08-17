@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 10
+local Type, Version = "Dropdown", 11
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -341,7 +341,7 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 	listData.button = button
 	listData.autoHideDelay = autoHideDelay
 	
-	numShownButtons = floor((UIParent:GetHeight() - UIDROPDOWNMENU_BORDER_HEIGHT * 2) / UIDROPDOWNMENU_BUTTON_HEIGHT)
+	numShownButtons = dropdownFrame.numShownButtons or floor((UIParent:GetHeight() - UIDROPDOWNMENU_BORDER_HEIGHT * 2) / UIDROPDOWNMENU_BUTTON_HEIGHT)
 	local scrollable = numShownButtons < listFrame.numButtons
 	if scrollable then
 		-- make scrollable
@@ -376,14 +376,17 @@ if not Dropdown.hookToggleDropDownMenu then
 end
 
 function Dropdown:AddButtonHook(info, level)
+	if not objects[UIDropDownMenu_GetCurrentDropDown()] then return end
 	local listFrameName = "DropDownList"..(level or 1)
 	local listFrame = _G[listFrameName]
 	local button = _G[listFrameName.."Button"..(listFrame.numButtons)]
+	-- .icon is not retained if .iconOnly is not set, so button width does not get properly increased - fixed here
 	button.icon = info.icon
 	listFrame.maxWidth = UIDropDownMenu_GetMaxButtonWidth(listFrame)
 	button.tooltipLines = info.tooltipLines
 	if info.attributes and not InCombatLockdown() then
 		local secureButton = self.secureBin[1]
+		-- since this is a separate button, we need to set the disabled state on it too
 		secureButton:SetEnabled(not info.disabled)
 		secureButton:SetParent(button)
 		secureButton:SetAllPoints()
@@ -429,6 +432,7 @@ end
 local function listOnHide(self)
 	if not InCombatLockdown() then
 		for i = #Dropdown.secureButtons, 1, -1 do
+			-- hide secure buttons attached to this list frame
 			local button = Dropdown.secureButtons[i]
 			if button:GetParent():GetParent() == self then
 				Dropdown:DismissSecureButton(button)
@@ -456,16 +460,7 @@ function Dropdown:CreateFramesHook(numLevels, numButtons)
 end
 
 if not Dropdown.hookCreateFrames then
-	for level = 1, UIDROPDOWNMENU_MAXLEVELS do
-		_G["DropDownList"..level]:HookScript("OnHide", listOnHide)
-		Dropdown.hookedLists[level] = true
-		Dropdown.hookedButtons[level] = Dropdown.hookedButtons[level] or {}
-		for i = 1, UIDROPDOWNMENU_MAXBUTTONS do
-			_G["DropDownList"..level.."Button"..i]:HookScript("OnEnter", onEnter)
-			_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnEnter", invisibleButtonOnEnter)
-			Dropdown.hookedButtons[level][i] = true
-		end
-	end
+	Dropdown:CreateFramesHook(UIDROPDOWNMENU_MAXLEVELS, UIDROPDOWNMENU_MAXBUTTONS)
 	hooksecurefunc("UIDropDownMenu_CreateFrames", function(...)
 		Dropdown:CreateFramesHook(...)
 	end)
@@ -496,7 +491,6 @@ local scripts = {
 
 setmetatable(Dropdown.secureBin, {
 	__index = function(self, index)
-		-- template for secure overlay buttons
 		local button = CreateFrame("Button", nil, nil, "SecureActionButtonTemplate")
 		for script, handler in pairs(scripts) do
 			button:SetScript(script, handler)
