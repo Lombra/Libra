@@ -1,5 +1,5 @@
 ﻿local Libra = LibStub("Libra")
-local Type, Version = "AceDBControls", 1
+local Type, Version = "AceDBControls", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -173,12 +173,10 @@ end
 local function createMenuButton(parent)
 	local button = Libra:CreateButton(parent)
 	button:SetScript("OnClick", menuButton_OnClick)
-	button.rightArrow:Show()
+	button.arrow:Show()
 	button:SetWidth(88)
 	
 	local menu = Libra:CreateDropdown("Menu")
-	menu.xOffset = 0
-	menu.yOffset = 0
 	menu.relativeTo = button
 	menu.initialize = initializeDropdown
 	menu.nocurrent = true
@@ -203,7 +201,7 @@ local createProfileScripts = {
 }
 
 local function enableDualProfileOnClick(self)
-	local checked = self:GetChecked() == 1
+	local checked = self:GetChecked()
 	self.db:SetDualSpecEnabled(checked)
 	self.dualProfile:SetEnabled(checked)
 end
@@ -285,8 +283,12 @@ local function constructor(self, db, parent)
 		
 		local hasDualProfile = db:GetNamespace("LibDualSpec-1.0", true)
 		if hasDualProfile then
+			local isDualSpecEnabled = db:IsDualSpecEnabled()
+			
 			local dualProfile = createDropdown(frame)
 			dualProfile:SetPoint("TOP", reset, "BOTTOM", 0, -28)
+			dualProfile:SetEnabled(isDualSpecEnabled)
+			dualProfile:SetText(db:GetDualSpecProfile())
 			dualProfile.func = db.SetDualSpecProfile
 			dualProfile.getCurrent = db.GetDualSpecProfile
 			dualProfile.common = true
@@ -296,13 +298,15 @@ local function constructor(self, db, parent)
 			enabled:SetPoint("BOTTOMLEFT", dualProfile, "TOPLEFT", 16, 0)
 			enabled:SetPushedTextOffset(0, 0)
 			enabled:SetScript("OnClick", enableDualProfileOnClick)
+			enabled:SetChecked(isDualSpecEnabled)
 			enabled.tooltipText = L.enable_desc
 			enabled.dualProfile = dualProfile
-			objects.dualEnabled = enabled
 			
 			local text = enabled:CreateFontString(nil, nil, "GameFontHighlight")
 			text:SetPoint("LEFT", enabled, "RIGHT", 0, 1)
 			text:SetText(L.enabled)
+			
+			frame.hasDualProfile = true
 		end
 	end
 	
@@ -312,11 +316,6 @@ local function constructor(self, db, parent)
 	end
 	
 	frame.choose:SetText(db:GetCurrentProfile())
-	
-	local isDualSpecEnabled = db:IsDualSpecEnabled()
-	frame.dualEnabled:SetChecked(isDualSpecEnabled)
-	frame.dualProfile:SetEnabled(isDualSpecEnabled)
-	frame.dualProfile:SetText(db:GetDualSpecProfile())
 	
 	frame:CheckProfiles()
 	
@@ -335,8 +334,10 @@ end
 
 function Prototype:OnProfileChanged(event, db, profile)
 	self.choose:SetText(profile)
-	self.dualProfile:SetText(db:GetDualSpecProfile())
 	self:CheckProfiles()
+	if self.hasDualProfile then
+		self.dualProfile:SetText(db:GetDualSpecProfile())
+	end
 end
 
 Prototype.OnNewProfile = Prototype.CheckProfiles

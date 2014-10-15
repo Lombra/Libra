@@ -23,7 +23,7 @@ object.frame:SetScript("OnEvent", function(self, event, ...)
 		if addon then
 			safecall(addon, "OnInitialize")
 			addon.OnInitialize = nil
-			for k, module in pairs(addon.modules) do
+			for i, module in addon:IterateModules() do
 				safecall(module, "OnInitialize")
 				module.OnInitialize = nil
 			end
@@ -82,20 +82,28 @@ function Libra:GetAddon(name)
 end
 
 function AddonPrototype:NewModule(name, table)
+	if self:GetModule(name) then
+		error(format("Module '%s' already exists in %s.", name, self.name), 2)
+	end
+	
 	local module = table or {}
 	ObjectEmbed(module)
 	module.name = name
-	self.modules[name] = module
+	tinsert(self.modules, module)
 	safecall(self, "OnModuleCreated", name, module)
 	return module, name
 end
 
 function AddonPrototype:GetModule(name)
-	return self.modules[name]
+	for i, module in self:IterateModules() do
+		if module.name == name then
+			return module
+		end
+	end
 end
 
 function AddonPrototype:IterateModules()
-	return pairs(self.modules)
+	return next, self.modules
 end
 
 function ObjectPrototype:RegisterEvent(event, handler)
@@ -136,7 +144,7 @@ end
 for k, v in pairs(object.addons) do
 	AddonEmbed(v)
 	ObjectEmbed(v)
-	for k, v in pairs(v.modules) do
+	for i, v in v:IterateModules() do
 		ObjectEmbed(v)
 	end
 end
