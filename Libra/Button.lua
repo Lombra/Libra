@@ -1,29 +1,26 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Button", 1
+local Type, Version = "Button", 2
 if Libra:GetModuleVersion(Type) >= Version then return end
 
-local function onMouseDown(self)
-	if not self:IsEnabled() then
-		self.leftArrow:SetPoint("LEFT",  5, 0)
-		self.rightArrow:SetPoint("RIGHT", -5, 0)
-	end
-end
-
 local function onEnable(self)
-	self.leftArrow:SetDesaturated(false)
-	self.rightArrow:SetDesaturated(false)
+	self.arrow:SetDesaturated(false)
 end
 
 local function onDisable(self)
-	self.leftArrow:SetDesaturated(true)
-	self.rightArrow:SetDesaturated(true)
+	self.arrow:SetDesaturated(true)
 end
 
 local function constructor(self, parent)
-	local button = CreateFrame("Button", Libra:GetWidgetName(self.name), parent, "UIMenuButtonStretchTemplate")
-	button:HookScript("OnMouseDown", onMouseDown)
+	local button = CreateFrame("Button", nil, parent, "UIMenuButtonStretchTemplate")
+	button:SetHeight(23)
 	button:SetScript("OnEnable", onEnable)
 	button:SetScript("OnDisable", onDisable)
+	button.arrow = button:CreateTexture()
+	button.arrow:SetSize(10, 12)
+	button.arrow:SetPoint("RIGHT", -5, 0)
+	button.arrow:SetTexture([[Interface\ChatFrame\ChatFrameExpandArrow]])
+	button.arrow:Hide()
+	button.Icon = button.arrow
 	return button
 end
 

@@ -11,4 +11,5 @@
 	<Script file="OptionsFrame.lua"/>
 	<Script file="ScrollFrame.lua"/>
 	<Script file="Slider.lua"/>
+	<Script file="Templates.lua"/>
 </Ui>

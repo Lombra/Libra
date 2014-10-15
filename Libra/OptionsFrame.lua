@@ -153,7 +153,7 @@ local controls = {}
 
 do
 	local function onClick(self)
-		local checked = self:GetChecked() ~= nil
+		local checked = self:GetChecked()
 		PlaySound(checked and "igMainMenuOptionCheckBoxOn" or "igMainMenuOptionCheckBoxOff")
 		set(self, checked)
 	end

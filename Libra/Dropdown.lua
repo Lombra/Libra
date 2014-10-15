@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 11
+local Type, Version = "Dropdown", 12
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -33,6 +33,8 @@ local function constructor(self, type, parent, name)
 		dropdown = setmetatable({}, menuMT)
 		dropdown:SetDisplayMode("MENU")
 		dropdown.SetHeight = setHeight
+		dropdown.xOffset = 0
+		dropdown.yOffset = 0
 	end
 	if type == "Frame" then
 		name = name or Libra:GetWidgetName(self.name)
@@ -58,6 +60,10 @@ end
 
 function Prototype:AddButton(info, level)
 	info.owner = self
+	if info.icon and not info.iconOnly then
+		-- hack to properly increase button width for icon when .iconOnly is not set
+		info.padding = (info.padding or 0) + 10
+	end
 	self.displayMode = self._displayMode
 	self.selectedName = self._selectedName
 	self.selectedValue = self._selectedValue
@@ -247,6 +253,8 @@ end
 local function scroll(self, delta)
 	local level = self:GetID()
 	local listData = listData[level]
+	delta = (type(delta) == "number" and delta or self.delta)
+	if IsShiftKeyDown() then delta = delta * (numShownButtons - 1) end
 	listData.scroll = listData.scroll - (type(delta) == "number" and delta or self.delta)
 	listData.scroll = min(listData.scroll, (self.numButtons or self:GetParent().numButtons) - numShownButtons)
 	listData.scroll = max(listData.scroll, 0)
@@ -351,9 +359,11 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 		end
 		listFrame:SetScript("OnMouseWheel", scroll)
 		listFrame:SetHeight((numShownButtons * UIDROPDOWNMENU_BUTTON_HEIGHT) + (UIDROPDOWNMENU_BORDER_HEIGHT * 2))
-		local point, anchorFrame, relativePoint, x, y = listFrame:GetPoint()
-		local offTop = (GetScreenHeight() - listFrame:GetTop())-- / listFrame:GetScale()
-		listFrame:SetPoint(point, anchorFrame, relativePoint, x, y + offTop)
+		if listFrame:GetTop() > GetScreenHeight() then
+			local point, anchorFrame, relativePoint, x, y = listFrame:GetPoint()
+			local offTop = (GetScreenHeight() - listFrame:GetTop())-- / listFrame:GetScale()
+			listFrame:SetPoint(point, anchorFrame, relativePoint, x, y + offTop)
+		end
 		update(level)
 	else
 		if listFrame:GetTop() > GetScreenHeight() then
@@ -380,12 +390,12 @@ function Dropdown:AddButtonHook(info, level)
 	local listFrameName = "DropDownList"..(level or 1)
 	local listFrame = _G[listFrameName]
 	local button = _G[listFrameName.."Button"..(listFrame.numButtons)]
-	-- .icon is not retained if .iconOnly is not set, so button width does not get properly increased - fixed here
-	button.icon = info.icon
-	listFrame.maxWidth = UIDropDownMenu_GetMaxButtonWidth(listFrame)
+	button.onEnter = info.onEnter
+	button.onLeave = info.onLeave
 	button.tooltipLines = info.tooltipLines
 	if info.attributes and not InCombatLockdown() then
 		local secureButton = self.secureBin[1]
+		tremove(Dropdown.secureBin, 1)
 		-- since this is a separate button, we need to set the disabled state on it too
 		secureButton:SetEnabled(not info.disabled)
 		secureButton:SetParent(button)
@@ -412,20 +422,37 @@ if not Dropdown.hookAddButton then
 end
 
 local function onEnter(self)
-	if self.tooltipLines and self.tooltipTitle and self.tooltipText then
+	if self.onEnter then
+		self:onEnter()
+	elseif self.tooltipLines and self.tooltipTitle then
 		GameTooltip:SetOwner(self, "ANCHOR_RIGHT")
 		GameTooltip:AddLine(self.tooltipTitle, HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
-		for line in self.tooltipText:gmatch("[^\n]+") do
-			GameTooltip:AddLine(line)
+		if self.tooltipText then
+			for line in self.tooltipText:gmatch("[^\n]+") do
+				GameTooltip:AddLine(line)
+			end
 		end
 		GameTooltip:Show()
 	end
 end
 
+local function onLeave(self)
+	if self.onLeave then
+		self:onLeave()
+	end
+end
+
 local function invisibleButtonOnEnter(self)
 	local parent = self:GetParent()
-	if parent.tooltipWhileDisabled then
+	if parent.onEnter or parent.tooltipWhileDisabled then
 		onEnter(parent)
+	end
+end
+
+local function invisibleButtonOnLeave(self)
+	local parent = self:GetParent()
+	if parent.onLeave or parent.tooltipWhileDisabled then
+		onLeave(parent)
 	end
 end
 
@@ -452,7 +479,9 @@ function Dropdown:CreateFramesHook(numLevels, numButtons)
 		for i = 1, numButtons do
 			if not self.hookedButtons[level][i] then
 				_G["DropDownList"..level.."Button"..i]:HookScript("OnEnter", onEnter)
+				_G["DropDownList"..level.."Button"..i]:HookScript("OnLeave", onLeave)
 				_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnEnter", invisibleButtonOnEnter)
+				_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnLeave", invisibleButtonOnLeave)
 				self.hookedButtons[level][i] = true
 			end
 		end
