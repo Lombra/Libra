@@ -39,10 +39,6 @@ function object.api:GetConnectedRealms()
 	return object.connectedRealmsSorted
 end
 
-for target in pairs(Libra.embeds) do
-	for k, v in pairs(object.api) do
-		target[k] = v
-	end
-end
+Libra:RegisterMethods(object.api)
 
 Libra:RegisterModule(Type, Version)
