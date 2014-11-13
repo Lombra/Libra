@@ -6,6 +6,7 @@ if not lib then return end
 lib.modules = lib.modules or {}
 lib.moduleVersions = lib.moduleVersions or {}
 lib.embeds = lib.embeds or {}
+lib.methods = lib.methods or {}
 lib.controls = lib.controls or {}
 lib.namespaces = lib.namespaces or {}
 
@@ -24,8 +25,13 @@ function lib:GetModuleVersion(module)
 	return self.moduleVersions[module] or 0
 end
 
-function lib:Create(objectType, ...)
-	return lib.controls[objectType](self, ...)
+function lib:RegisterMethods(tbl)
+	for k, v in pairs(tbl) do
+		for target in pairs(self.embeds) do
+			target[k] = v
+		end
+		self.methods[k] = v
+	end
 end
 
 function lib:GetWidgetName(name)
@@ -42,14 +48,10 @@ function lib:GetWidgetName(name)
 	return namespace()
 end
 
-local mixins = {
-	"Create",
-}
-
 function lib:Embed(target)
-	-- for i, v in ipairs(mixins) do
-		-- target[v] = self[v]
-	-- end
+	for k, v in pairs(self.methods) do
+		target[k] = v
+	end
 	for k, v in pairs(self.controls) do
 		target["Create"..k] = v
 	end
