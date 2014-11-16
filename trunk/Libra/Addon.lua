@@ -21,6 +21,9 @@ local function removeDefaults(tbl, defaults)
 	for k, v in pairs(defaults) do
 		if type(v) == "table" then
 			removeDefaults(tbl[k], v)
+			if not next(tbl[k]) then
+				tbl[k] = nil
+			end
 		elseif v == tbl[k] then
 			tbl[k] = nil
 		end
