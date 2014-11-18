@@ -32,7 +32,8 @@ end
 
 function object.api:IsConnectedRealm(realm, includeOwn)
 	if not realm then return end
-	return (realm ~= object.myRealm or includeOwn) and object.connectedRealms[realm:gsub("[ -]", "")]
+	realm = realm:gsub("[ -]", "")
+	return (realm ~= object.myRealm or includeOwn) and object.connectedRealms[realm]
 end
 
 function object.api:GetConnectedRealms()
