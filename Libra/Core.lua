@@ -5,9 +5,9 @@ if not lib then return end
 
 lib.modules = lib.modules or {}
 lib.moduleVersions = lib.moduleVersions or {}
-lib.embeds = lib.embeds or {}
+lib.embeds = lib.widgetEmbeds or lib.embeds or {}
 lib.methods = lib.methods or {}
-lib.controls = lib.controls or {}
+lib.controls = lib.widgets or lib.controls or {}
 lib.namespaces = lib.namespaces or {}
 
 function lib:RegisterModule(object, version, constructor)
