@@ -478,10 +478,11 @@ function Dropdown:CreateFramesHook(numLevels, numButtons)
 		self.hookedButtons[level] = self.hookedButtons[level] or {}
 		for i = 1, numButtons do
 			if not self.hookedButtons[level][i] then
-				_G["DropDownList"..level.."Button"..i]:HookScript("OnEnter", onEnter)
-				_G["DropDownList"..level.."Button"..i]:HookScript("OnLeave", onLeave)
-				_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnEnter", invisibleButtonOnEnter)
-				_G["DropDownList"..level.."Button"..i.."InvisibleButton"]:HookScript("OnLeave", invisibleButtonOnLeave)
+				local button = _G["DropDownList"..level.."Button"..i]
+				button:HookScript("OnEnter", onEnter)
+				button:HookScript("OnLeave", onLeave)
+				button.invisibleButton:HookScript("OnEnter", invisibleButtonOnEnter)
+				button.invisibleButton:HookScript("OnLeave", invisibleButtonOnLeave)
 				self.hookedButtons[level][i] = true
 			end
 		end
