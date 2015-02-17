@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 12
+local Type, Version = "Dropdown", 13
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -329,10 +329,7 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 	end
 	local listFrameName = "DropDownList"..level
 	local listFrame = _G[listFrameName]
-	if not objects[dropdownFrame] then
-		listFrame:SetScript("OnMouseWheel", nil)
-		return
-	end
+	if not objects[dropdownFrame] then return end
 	if dropdownFrame and dropdownFrame._displayMode == "MENU" then
 		_G[listFrameName.."Backdrop"]:Hide()
 		_G[listFrameName.."MenuBackdrop"]:Show()
@@ -456,7 +453,7 @@ local function invisibleButtonOnLeave(self)
 	end
 end
 
-local function listOnHide(self)
+function Dropdown:HideListHook(self)
 	if not InCombatLockdown() then
 		for i = #Dropdown.secureButtons, 1, -1 do
 			-- hide secure buttons attached to this list frame
@@ -467,6 +464,13 @@ local function listOnHide(self)
 			end
 		end
 	end
+	if objects[UIDropDownMenu_GetCurrentDropDown()] then
+		self:SetScript("OnMouseWheel", nil)
+	end
+end
+
+local function listOnHide(self)
+	Dropdown:HideListHook(self)
 end
 
 function Dropdown:CreateFramesHook(numLevels, numButtons)
