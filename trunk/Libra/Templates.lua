@@ -417,6 +417,9 @@ local function constructor(self, objectType, parent, template)
 			createFontString(frame, v)
 		end
 	end
+	if template.scripts.OnLoad then
+		template.scripts.OnLoad(frame)
+	end
 	return frame
 end
 
