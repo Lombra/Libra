@@ -399,14 +399,6 @@ end
 local function constructor(self, objectType, parent, template)
 	local frame = CreateFrame(objectType, template.name, parent, template.inherits)
 	applyAttributes(frame, template)
-	if template.scripts then
-		for k, v in pairs(template.scripts) do
-			if type(v) == "string" then
-				v = frame[v]
-			end
-			frame:SetScript(k, v)
-		end
-	end
 	if template.textures then
 		for i, v in ipairs(template.textures) do
 			createTexture(frame, v)
@@ -417,8 +409,16 @@ local function constructor(self, objectType, parent, template)
 			createFontString(frame, v)
 		end
 	end
-	if template.scripts.OnLoad then
-		template.scripts.OnLoad(frame)
+	if template.scripts then
+		for k, v in pairs(template.scripts) do
+			if type(v) == "string" then
+				v = frame[v]
+			end
+			frame:SetScript(k, v)
+		end
+		if template.scripts.OnLoad then
+			template.scripts.OnLoad(frame)
+		end
 	end
 	return frame
 end
