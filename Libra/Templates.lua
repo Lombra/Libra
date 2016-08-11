@@ -112,11 +112,11 @@ local attributes = {
 	BarColor = "SetStatusBarColor",
 	-- drawLayer = function(self, value) self:GetStatusBarTexture():SetDrawLayer(value) end,
 	minValue = function(self, value)
-		local minValue, maxValue = self:GtMinMaxValues()
+		local minValue, maxValue = self:GetMinMaxValues()
 		self:SetMinMaxValues(value, maxValue)
 	end,
 	maxValue = function(self, value)
-		local minValue, maxValue = self:GtMinMaxValues()
+		local minValue, maxValue = self:GetMinMaxValues()
 		self:SetMinMaxValues(minValue, value)
 	end,
 	-- defaultValue
