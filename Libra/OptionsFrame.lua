@@ -268,7 +268,7 @@ do	-- ColorButton
 		colorButton.bg = colorButton:CreateTexture(nil, "BACKGROUND")
 		colorButton.bg:SetSize(14, 14)
 		colorButton.bg:SetPoint("CENTER")
-		colorButton.bg:SetTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
+		colorButton.bg:SetColorTexture(HIGHLIGHT_FONT_COLOR.r, HIGHLIGHT_FONT_COLOR.g, HIGHLIGHT_FONT_COLOR.b)
 		
 		colorButton.label = colorButton:CreateFontString()
 		colorButton.label:SetPoint("LEFT", colorButton, "RIGHT", 5, 1)
