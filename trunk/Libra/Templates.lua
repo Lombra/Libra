@@ -17,6 +17,7 @@ local attributes = {
 	parentArray = function(self, value) tinsert(self:GetParent()[value], self) end,
 	-- inherits
 	mixin = function(self, value) Mixin(self, unpack(value)) end,
+	-- secureMixin = function(self, value) Mixin(self, unpack(value)) end,
 	-- virtual
 	setAllPoints = "SetAllPoints",
 	hidden = function(self, value) self:SetShown(not value) end,
@@ -71,7 +72,11 @@ local attributes = {
 	depth = "SetDepth",
 	dontSavePosition = "SetDontSavePosition",
 	propagateKeyboardInput = "SetPropagateKeyboardInput",
-	-- forceAlpha
+	ignoreParentAlpha = "SetIgnoreParentAlpha",
+	ignoreParentScale = "SetIgnoreParentScale",
+	clipChildren = "SetClipsChildren",
+	-- propagateHyperlinksToParent
+	hyperlinksEnabled = "SetHyperlinksEnabled",
 	
 	-- Button
 	normalTexture = "SetNormalTexture",
@@ -124,16 +129,17 @@ local attributes = {
 	rotatesTexture = "SetRotatesTexture",
 	reverseFill = "SetReverseFill",
 	
---[=[
 	-- Slider
-	ThumbTexture
-	drawLayer
-	minValue
-	maxValue
-	defaultValue
-	valueStep
-	orientation
+	-- ThumbTexture
+	-- drawLayer
+	-- minValue
+	-- maxValue
+	-- defaultValue
+	valueStep = "SetValueStep",
+	obeyStepOnDrag = "SetObeyStepOnDrag",
+	-- orientation
 	
+--[=[
 	-- EditBox
 	FontString
 	HighlightColor
@@ -306,53 +312,59 @@ local attributes = {
 	parentKey
 	looping
 	setToFinalAlpha
+]=]
 	
 	-- Texture
-	TexCoords
-		left
-		right
-		top
-		bottom
-		ULx
-		ULy
-		LLx
-		LLy
-		URx
-		URy
-		LRx
-		LRy
-	Color
-	Gradient
-	file
-	mask
-	alphaMode
-	alpha
-	forceAlpha
-	nonBlocking
-	horizTile
-	vertTile
-	atlas
-	useAtlasSize
-	desaturated
+	texCoords = function(self, value)
+		if value.left and value.right and value.top and value.bottom then
+			self:SetTexCoord(value.left, value.right, value.top, value.bottom)
+		else
+			self:SetTexCoord(value.ULx, value.ULy, value.LLx, value.LLy, value.URx, value.URy, value.LRx, value.LRy)
+		end
+	end,
+	color = function(self, value) texture:SetColorTexture(value.r, value.g, value.b, value.a) end,
+	-- Gradient
+	file = "SetTexture",
+	mask = "SetMask",
+	alphaMode = "SetBlendMode",
+	-- alpha = "SetAlpha",
+	ignoreParentAlpha = "SetIgnoreParentAlpha",
+	ignoreParentScale = "SetIgnoreParentScale",
+	nonBlocking = "SetNonBlocking",
+	horizTile = "SetHorizTile",
+	vertTile = "SetVertTile",
+	atlas = "SetAtlas",
+	-- useAtlasSize
+	desaturated = "SetDesaturated",
 	
 	-- FontString
-	FontHeight
-	Color
-	Shadow
-	font
-	bytes
-	text
-	spacing
-	outline
-	monochrome
-	nonspacewrap
-	wordwrap
-	justifyV
+	-- FontHeight
+	color = function(self, value) texture:SetTextColor(value.r, value.g, value.b, value.a) end,
+	shadow = function(self, value)
+		if value.offset then
+			self:SetShadowOffset(value.offset.x, value.offset.y)
+		end
+		if value.color then
+			self:SetShadowColor(value.color.r, value.color.g, value.color.b, value.color.a)
+		end
+	end,
+	-- font = "SetFont",
+	-- bytes
+	text = "SetText",
+	spacing = "SetSpacing",
+	-- outline
+	-- monochrome
+	nonspacewrap = "SetNonSpaceWrap",
+	wordwrap = "SetWordWrap",
+	justifyV = "SetJustifyV",
 	justifyH = "SetJustifyH",
-	maxLines
-	indented
-	alpha
+	maxLines = "SetMaxLines",
+	indented = "SetIndentedWordWrap",
+	-- alpha = "SetAlpha",
+	ignoreParentAlpha = "SetIgnoreParentAlpha",
+	ignoreParentScale = "SetIgnoreParentScale",
 	
+--[=[
 	-- Line
 	StartAnchor
 		Offset
@@ -397,7 +409,11 @@ local function createFontString(parent, template)
 end
 
 local function constructor(self, objectType, parent, template)
-	local frame = CreateFrame(objectType, template.name, parent, template.inherits)
+	local inherits = template.inherits
+	if type(inherits) == "table" then
+		inherits = table.concat(",", inherits)
+	end
+	local frame = CreateFrame(objectType, template.name, parent, inherits)
 	applyAttributes(frame, template)
 	if template.textures then
 		for i, v in ipairs(template.textures) do

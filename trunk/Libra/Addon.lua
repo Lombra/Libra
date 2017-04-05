@@ -176,7 +176,7 @@ end
 
 function ObjectPrototype:RegisterMessage(module, message, handler)
 	if type(handler) ~= "function" then
-		handler = self[handler] or self[message]
+		handler = module[handler] or module[message]
 	end
 	self.messages[message][module] = handler
 end
