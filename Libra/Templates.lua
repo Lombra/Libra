@@ -47,7 +47,7 @@ local attributes = {
 		end
 		local borderColor = value.borderColor
 		if borderColor then
-			self:SetBackdropColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
+			self:SetBackdropBorderColor(borderColor.r, borderColor.g, borderColor.b, borderColor.a)
 		end
 	end,
 	hitRectInsets = function(self, value) self:SetHitRectInsets(value.left, value.right, value.top, value.bottom) end,
