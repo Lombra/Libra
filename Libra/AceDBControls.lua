@@ -1,5 +1,5 @@
 ﻿local Libra = LibStub("Libra")
-local Type, Version = "AceDBControls", 4
+local Type, Version = "AceDBControls", 5
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -9,6 +9,9 @@ AceDBControls.Prototype = AceDBControls.Prototype or CreateFrame("Frame")
 
 local Prototype = AceDBControls.Prototype
 local mt = {__index = Prototype}
+
+local _, _, classID = UnitClass("player")
+local numSpecs = GetNumSpecializationsForClassID(classID)
 
 local L = {
 	default = "Default",
@@ -203,11 +206,13 @@ local createProfileScripts = {
 local function enableDualProfileOnClick(self)
 	local checked = self:GetChecked()
 	self.db:SetDualSpecEnabled(checked)
-	self.dualProfile:SetEnabled(checked)
+	for i = 1, numSpecs do
+		self["dualProfile"..i]:SetEnabled(checked)
+	end
 end
 
 local function dualProfileOnClick(db, profile, frame)
-	db:SetDualSpecProfile(profile)
+	db:SetDualSpecProfile(profile, frame.spec)
 	frame:SetText(profile)
 end
 
@@ -290,22 +295,34 @@ local function constructor(self, db, parent)
 		if hasDualProfile then
 			local isDualSpecEnabled = db:IsDualSpecEnabled()
 			
-			local dualProfile = createDropdown(frame)
-			dualProfile:SetPoint("TOP", reset, "BOTTOM", 0, -28)
-			dualProfile:SetEnabled(isDualSpecEnabled)
-			dualProfile:SetText(db:GetDualSpecProfile())
-			dualProfile.func = dualProfileOnClick
-			dualProfile.getCurrent = db.GetDualSpecProfile
-			dualProfile.common = true
-			objects.dualProfile = dualProfile
+			for i = 1, numSpecs do
+				local _, specName = GetSpecializationInfoForClassID(classID, i)
+				local dualProfile = createDropdown(frame)
+				if i == 1 then
+					dualProfile:SetPoint("TOP", reset, "BOTTOM", 0, -28)
+				else
+					dualProfile:SetPoint("TOP", objects["dualProfile"..(i - 1)], "BOTTOM", 0, -28)
+				end
+				dualProfile.label:SetText(specName)
+				dualProfile:SetEnabled(isDualSpecEnabled)
+				dualProfile:SetText(db:GetDualSpecProfile(i))
+				dualProfile.func = dualProfileOnClick
+				dualProfile.getCurrent = db.GetDualSpecProfile
+				dualProfile.common = true
+				dualProfile.spec = i
+				objects["dualProfile"..i] = dualProfile
+			end
 			
 			local enabled = CreateFrame("CheckButton", nil, frame, "OptionsBaseCheckButtonTemplate")
-			enabled:SetPoint("BOTTOMLEFT", dualProfile, "TOPLEFT", 16, 0)
+			enabled:SetPoint("BOTTOMLEFT", objects.dualProfile1, "TOPLEFT", 16, 0)
 			enabled:SetPushedTextOffset(0, 0)
 			enabled:SetScript("OnClick", enableDualProfileOnClick)
 			enabled:SetChecked(isDualSpecEnabled)
 			enabled.tooltipText = L.enable_desc
-			enabled.dualProfile = dualProfile
+			enabled.dualProfile1 = objects.dualProfile1
+			enabled.dualProfile2 = objects.dualProfile2
+			enabled.dualProfile3 = objects.dualProfile3
+			enabled.dualProfile4 = objects.dualProfile4
 			objects.dualEnabled = enabled
 			
 			local text = enabled:CreateFontString(nil, nil, "GameFontHighlight")
@@ -342,7 +359,9 @@ function Prototype:OnProfileChanged(event, db, profile)
 	self.choose:SetText(profile)
 	self:CheckProfiles()
 	if self.hasDualProfile then
-		self.dualProfile:SetText(db:GetDualSpecProfile())
+		for i = 1, numSpecs do
+			self["dualProfile"..i]:SetText(db:GetDualSpecProfile(i))
+		end
 	end
 end
 
