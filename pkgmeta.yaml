@@ -1,5 +1,7 @@
 ﻿package-as: Libra
 
+manual-changelog: CHANGELOG.txt
+
 enable-nolib-creation: no
 
 externals:
