@@ -3,6 +3,6 @@
 ## Title: Libra
 ## Author: Lombra
 
-LibStub\LibStub.lua
+Libs\LibStub\LibStub.lua
 
 Libra\Libra.xml
