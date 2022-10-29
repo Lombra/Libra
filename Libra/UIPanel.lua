@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "UIPanel", 2
+local Type, Version = "UIPanel", 3
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -51,7 +51,7 @@ for k, v in pairs(methods) do
 end
 
 function Prototype:SetTitleText(text)
-	self.TitleText:SetText(text)
+	self:SetTitle(text)
 end
 
 function Prototype:HideButtonBar()
@@ -75,11 +75,11 @@ function Prototype:CreateTab(name)
 	-- end
 	local tabs = self.tabs
 	local numTabs = #tabs + 1
-	local tab = CreateFrame("Button", self:GetName().."Tab"..numTabs, self, "CharacterFrameTabButtonTemplate")
+	local tab = CreateFrame("Button", self:GetName().."Tab"..numTabs, self, "PanelTabButtonTemplate")
 	if numTabs == 1 then
 		tab:SetPoint("BOTTOMLEFT", 19, -30)
 	else
-		tab:SetPoint("LEFT", tabs[numTabs - 1], "RIGHT", -15, 0)
+		tab:SetPoint("TOPLEFT", tabs[numTabs - 1], "TOPRIGHT", 3, 0)
 	end
 	tab:SetID(numTabs)
 	tab:SetScript("OnClick", onClick)
