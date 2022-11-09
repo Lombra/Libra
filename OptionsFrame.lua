@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "OptionsFrame", 5
+local Type, Version = "OptionsFrame", 6
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -19,10 +19,18 @@ local ParentPrototype = Options.ParentPrototype
 
 local function createFrame(name, parent)
 	local frame = CreateFrame("Frame")
-	frame.name = name
-	frame.parent = parent
-	InterfaceOptions_AddCategory(frame)
-	
+
+	if parent then
+		local subCategory, layout = Settings.RegisterCanvasLayoutSubcategory(parent, frame, name)
+		subCategory.ID = name
+		frame.category = subCategory
+	else
+		local category, layout = Settings.RegisterCanvasLayoutCategory(frame, name)
+		category.ID = name
+		Settings.RegisterAddOnCategory(category)
+		frame.category = category
+	end
+
 	local title = frame:CreateFontString(nil, nil, "GameFontNormalLarge")
 	title:SetPoint("TOPLEFT", 16, -16)
 	title:SetPoint("RIGHT", -16, 0)
@@ -52,7 +60,7 @@ end
 
 
 function ParentPrototype:AddSubCategory(name, inherit)
-	local frame = setmetatable(createFrame(name, self.name), mt)
+	local frame = setmetatable(createFrame(name, self.category), mt)
 	if inherit then
 		frame.db = self.db
 		frame.useProfile = self.useProfile
@@ -168,7 +176,8 @@ do	-- CheckButton
 	end
 	
 	controls.CheckButton = function(parent)
-		local checkButton = CreateFrame("CheckButton", nil, parent, "OptionsBaseCheckButtonTemplate")
+		local checkButton = CreateFrame("CheckButton", nil, parent, "UICheckButtonTemplate")
+		checkButton:SetSize(26, 26)
 		checkButton:SetNormalFontObject("GameFontHighlight")
 		checkButton:SetDisabledFontObject("GameFontDisable")
 		checkButton:SetPushedTextOffset(0, 0)
