@@ -6,4 +6,4 @@
 
 Libs\LibStub\LibStub.lua
 
-Libra\Libra.xml
+Libra.xml
