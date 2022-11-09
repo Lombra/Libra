@@ -92,6 +92,10 @@ function Prototype:SetDatabase(database, useProfile)
 	end
 end
 
+function Prototype:Open()
+	Settings.OpenToCategory(self.category.ID)
+end
+
 function Prototype:SetHandler(tbl)
 	self.handler = tbl
 	if self.subCategories then
