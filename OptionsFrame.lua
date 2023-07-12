@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "OptionsFrame", 6
+local Type, Version = "OptionsFrame", 7
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
