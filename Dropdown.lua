@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 13
+local Type, Version = "Dropdown", 14
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -40,8 +40,9 @@ local function constructor(self, type, parent, name)
 		name = name or Libra:GetWidgetName(self.name)
 		dropdown = setmetatable(CreateFrame("Frame", name, parent, "UIDropDownMenuTemplate"), frameMT)
 		dropdown:SetWidth(115)
-		dropdown.label = dropdown:CreateFontString(name.."Label", "BACKGROUND", "GameFontNormalSmall")
-		dropdown.label:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 16, 3)
+		dropdown.Label = dropdown:CreateFontString(nil, "BACKGROUND", "GameFontNormalSmall")
+		dropdown.Label:SetPoint("BOTTOMLEFT", dropdown, "TOPLEFT", 16, 3)
+		dropdown.label = dropdown.Label
 	end
 	
 	objects[dropdown] = true
@@ -210,20 +211,20 @@ end
 local setWidth = Prototype.SetWidth
 
 function FramePrototype:SetWidth(width, padding)
-	_G[self:GetName().."Middle"]:SetWidth(width)
+	self.Middle:SetWidth(width)
 	local defaultPadding = 25
 	if padding then
 		setWidth(self, width + padding)
-		_G[self:GetName().."Text"]:SetWidth(width)
+		self.Text:SetWidth(width)
 	else
 		setWidth(self, width + defaultPadding + defaultPadding)
-		_G[self:GetName().."Text"]:SetWidth(width - defaultPadding)
+		self.Text:SetWidth(width - defaultPadding)
 	end
 	self.noResize = 1
 end
 
 function FramePrototype:SetLabel(text)
-	self.label:SetText(text)
+	self.Label:SetText(text)
 end
 
 function FramePrototype:SetEnabled(enable)
@@ -331,7 +332,7 @@ function Dropdown:ToggleDropDownMenuHook(level, value, dropdownFrame, anchorName
 	local listFrame = _G[listFrameName]
 	if not objects[dropdownFrame] then return end
 	if dropdownFrame and dropdownFrame._displayMode == "MENU" then
-		_G[listFrameName.."Backdrop"]:Hide()
+		listFrame.Border:Hide()
 		_G[listFrameName.."MenuBackdrop"]:Show()
 	end
 	
