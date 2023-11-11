@@ -1,5 +1,5 @@
 local Libra = LibStub("Libra")
-local Type, Version = "Dropdown", 14
+local Type, Version = "Dropdown", 15
 if Libra:GetModuleVersion(Type) >= Version then return end
 
 Libra.modules[Type] = Libra.modules[Type] or {}
@@ -24,15 +24,11 @@ local FramePrototype = Dropdown.FramePrototype
 local objects = Dropdown.objects
 local listData = Dropdown.listData
 
-local function setHeight() end
-
 local function constructor(self, type, parent, name)
 	local dropdown
 	if type == "Menu" then
-		-- adding a SetHeight dummy lets us use a simple table instead of a frame, no side effects noticed so far
-		dropdown = setmetatable({}, menuMT)
+		dropdown = setmetatable(CreateFrame("Frame"), menuMT)
 		dropdown:SetDisplayMode("MENU")
-		dropdown.SetHeight = setHeight
 		dropdown.xOffset = 0
 		dropdown.yOffset = 0
 	end
